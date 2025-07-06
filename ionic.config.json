@@ -1,0 +1,7 @@
+{
+  "name": "car-document-manager",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular-standalone"
+}
