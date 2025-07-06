@@ -1,0 +1,43 @@
+<ion-content [fullscreen]="true" class="auth-content">
+  <div class="auth-container">
+    <div class="logo-section">
+      <ion-icon name="car-sport" class="logo-icon"></ion-icon>
+      <h1>Gestionnaire de Documents Auto</h1>
+      <p>Gérez facilement tous vos documents de véhicules</p>
+    </div>
+
+    <div class="auth-form">
+      <ion-button
+        expand="block"
+        fill="solid"
+        color="primary"
+        size="large"
+        (click)="signInWithGoogle()"
+        [disabled]="loading"
+      >
+        <ion-icon name="logo-google" slot="start"></ion-icon>
+        <span *ngIf="!loading">Se connecter avec Google</span>
+        <ion-spinner *ngIf="loading" name="crescent"></ion-spinner>
+      </ion-button>
+
+      <div class="features-list">
+        <div class="feature-item">
+          <ion-icon name="car" color="primary"></ion-icon>
+          <span>Gestion des véhicules</span>
+        </div>
+        <div class="feature-item">
+          <ion-icon name="document-text" color="primary"></ion-icon>
+          <span>Suivi des documents</span>
+        </div>
+        <div class="feature-item">
+          <ion-icon name="notifications" color="primary"></ion-icon>
+          <span>Alertes d'expiration</span>
+        </div>
+        <div class="feature-item">
+          <ion-icon name="search" color="primary"></ion-icon>
+          <span>Recherche avancée</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</ion-content>

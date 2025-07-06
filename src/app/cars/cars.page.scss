@@ -1,0 +1,190 @@
+.cars-container {
+  padding: 1rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+ion-searchbar {
+  margin-bottom: 1rem;
+  --background: var(--ion-color-light);
+  --border-radius: 12px;
+}
+
+.car-card {
+  margin-bottom: 1rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  .car-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+
+    .car-info {
+      flex: 1;
+
+      ion-card-title {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: var(--ion-color-primary);
+        margin-bottom: 0.25rem;
+      }
+
+      ion-card-subtitle {
+        font-size: 0.9rem;
+        color: var(--ion-color-medium);
+      }
+    }
+
+    .car-actions {
+      display: flex;
+      gap: 0.25rem;
+
+      ion-button {
+        --padding-start: 8px;
+        --padding-end: 8px;
+        --padding-top: 8px;
+        --padding-bottom: 8px;
+        height: 36px;
+        width: 36px;
+
+        ion-icon {
+          font-size: 1.1rem;
+        }
+      }
+    }
+  }
+
+  .car-details {
+    display: grid;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+
+    .detail-item {
+      display: flex;
+      align-items: center;
+      font-size: 0.9rem;
+
+      ion-icon {
+        margin-right: 0.5rem;
+        font-size: 1rem;
+      }
+
+      span {
+        color: var(--ion-color-dark);
+        font-weight: 500;
+      }
+    }
+  }
+
+  .documents-info {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--ion-color-light);
+
+    ion-chip {
+      --background: var(--ion-color-secondary-tint);
+      --color: var(--ion-color-secondary-contrast);
+
+      ion-icon {
+        margin-right: 0.25rem;
+        font-size: 0.9rem;
+      }
+    }
+  }
+}
+
+.empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--ion-color-medium);
+
+  ion-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+  }
+
+  h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.2rem;
+    color: var(--ion-color-dark);
+  }
+
+  p {
+    margin: 0 0 2rem 0;
+    font-size: 0.9rem;
+    line-height: 1.4;
+  }
+
+  ion-button {
+    --border-radius: 25px;
+    --padding-start: 2rem;
+    --padding-end: 2rem;
+  }
+}
+
+ion-fab-button {
+  --box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+
+  &:hover {
+    --box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+  }
+}
+
+@media (max-width: 768px) {
+  .cars-container {
+    padding: 0.5rem;
+  }
+
+  .car-card {
+    margin-bottom: 0.75rem;
+
+    .car-header {
+      .car-actions {
+        ion-button {
+          height: 32px;
+          width: 32px;
+          --padding-start: 6px;
+          --padding-end: 6px;
+          --padding-top: 6px;
+          --padding-bottom: 6px;
+
+          ion-icon {
+            font-size: 1rem;
+          }
+        }
+      }
+    }
+
+    .car-details {
+      gap: 0.5rem;
+
+      .detail-item {
+        font-size: 0.85rem;
+
+        ion-icon {
+          font-size: 0.9rem;
+          margin-right: 0.4rem;
+        }
+      }
+    }
+  }
+
+  .empty-state {
+    padding: 2rem 1rem;
+
+    ion-icon {
+      font-size: 3rem;
+    }
+
+    h3 {
+      font-size: 1.1rem;
+    }
+  }
+}

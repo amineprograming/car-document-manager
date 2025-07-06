@@ -1,17 +1,182 @@
 <ion-header [translucent]="true">
-  <ion-toolbar>
-    <ion-title>
-      Tab 1
-    </ion-title>
+  <ion-toolbar color="primary">
+    <ion-title> Tableau de Bord </ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="refresh()">
+        <ion-icon name="refresh"></ion-icon>
+      </ion-button>
+      <ion-button (click)="logout()">
+        <ion-icon name="log-out"></ion-icon>
+      </ion-button>
+    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
 <ion-content [fullscreen]="true">
   <ion-header collapse="condense">
     <ion-toolbar>
-      <ion-title size="large">Tab 1</ion-title>
+      <ion-title size="large">Tableau de Bord</ion-title>
     </ion-toolbar>
   </ion-header>
 
-  <app-explore-container name="Tab 1 page"></app-explore-container>
+  <div class="dashboard-container">
+    <!-- Welcome Section -->
+    <div class="welcome-section" *ngIf="user">
+      <ion-avatar>
+        <img
+          [src]="user.photoURL || 'assets/default-avatar.png'"
+          [alt]="user.displayName"
+        />
+      </ion-avatar>
+      <div class="welcome-text">
+        <h2>Bonjour, {{user.displayName || 'Utilisateur'}}</h2>
+        <p>Voici un aperçu de vos documents</p>
+      </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="stats-grid">
+      <ion-card class="stat-card cars">
+        <ion-card-content>
+          <div class="stat-icon">
+            <ion-icon name="car"></ion-icon>
+          </div>
+          <div class="stat-info">
+            <h3>{{stats.totalCars}}</h3>
+            <p>Véhicules</p>
+          </div>
+        </ion-card-content>
+      </ion-card>
+
+      <ion-card class="stat-card documents">
+        <ion-card-content>
+          <div class="stat-icon">
+            <ion-icon name="document-text"></ion-icon>
+          </div>
+          <div class="stat-info">
+            <h3>{{stats.activeDocuments}}</h3>
+            <p>Documents Actifs</p>
+          </div>
+        </ion-card-content>
+      </ion-card>
+
+      <ion-card class="stat-card expired">
+        <ion-card-content>
+          <div class="stat-icon">
+            <ion-icon name="alert-circle"></ion-icon>
+          </div>
+          <div class="stat-info">
+            <h3>{{stats.expiredDocuments}}</h3>
+            <p>Expirés</p>
+          </div>
+        </ion-card-content>
+      </ion-card>
+
+      <ion-card class="stat-card expiring">
+        <ion-card-content>
+          <div class="stat-icon">
+            <ion-icon name="warning"></ion-icon>
+          </div>
+          <div class="stat-info">
+            <h3>{{stats.expiringInSevenDays}}</h3>
+            <p>Expirent Bientôt</p>
+          </div>
+        </ion-card-content>
+      </ion-card>
+    </div>
+
+    <!-- Recent Expiring Documents -->
+    <ion-card *ngIf="stats.soonToExpireDocuments.length > 0">
+      <ion-card-header>
+        <ion-card-title>
+          <ion-icon name="time" color="warning"></ion-icon>
+          Documents à Expiration Proche
+        </ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <ion-list>
+          <ion-item
+            *ngFor="let document of stats.soonToExpireDocuments"
+            lines="full"
+          >
+            <div slot="start" class="document-type-icon">
+              <ion-icon
+                [name]="getDocumentIcon(document.typeDocument)"
+                [color]="getExpirationStatus(document.dateFin).color"
+              ></ion-icon>
+            </div>
+            <ion-label>
+              <h3>{{document.typeDocument}}</h3>
+              <p>{{document.matriculeCar}}</p>
+              <ion-note [color]="getExpirationStatus(document.dateFin).color">
+                {{getExpirationStatus(document.dateFin).message}}
+              </ion-note>
+            </ion-label>
+            <ion-chip
+              [color]="getExpirationStatus(document.dateFin).color"
+              slot="end"
+            >
+              {{getDaysUntilExpiration(document.dateFin)}} j
+            </ion-chip>
+          </ion-item>
+        </ion-list>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- Quick Actions -->
+    <ion-card>
+      <ion-card-header>
+        <ion-card-title>
+          <ion-icon name="flash" color="primary"></ion-icon>
+          Actions Rapides
+        </ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <div class="quick-actions">
+          <ion-button expand="block" fill="outline" routerLink="/tabs/cars">
+            <ion-icon name="car" slot="start"></ion-icon>
+            Gérer les Véhicules
+          </ion-button>
+          <ion-button
+            expand="block"
+            fill="outline"
+            routerLink="/tabs/documents"
+          >
+            <ion-icon name="document-text" slot="start"></ion-icon>
+            Gérer les Documents
+          </ion-button>
+          <ion-button expand="block" fill="outline" routerLink="/tabs/alerts">
+            <ion-icon name="notifications" slot="start"></ion-icon>
+            Voir les Alertes
+          </ion-button>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- Empty State -->
+    <div class="empty-state" *ngIf="stats.totalCars === 0">
+      <ion-icon name="car-sport" color="medium"></ion-icon>
+      <h3>Aucun véhicule enregistré</h3>
+      <p>Commencez par ajouter votre premier véhicule</p>
+      <ion-button routerLink="/tabs/cars" color="primary">
+        <ion-icon name="add" slot="start"></ion-icon>
+        Ajouter un Véhicule
+      </ion-button>
+    </div>
+  </div>
+
+  <!-- Floating Action Button -->
+  <ion-fab vertical="bottom" horizontal="end" slot="fixed">
+    <ion-fab-button color="primary">
+      <ion-icon name="add"></ion-icon>
+    </ion-fab-button>
+    <ion-fab-list side="top">
+      <ion-fab-button routerLink="/tabs/cars" color="secondary">
+        <ion-icon name="car"></ion-icon>
+      </ion-fab-button>
+      <ion-fab-button routerLink="/tabs/documents" color="tertiary">
+        <ion-icon name="document-text"></ion-icon>
+      </ion-fab-button>
+    </ion-fab-list>
+  </ion-fab>
 </ion-content>

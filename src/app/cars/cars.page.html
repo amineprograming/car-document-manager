@@ -1,0 +1,101 @@
+<ion-header [translucent]="true">
+  <ion-toolbar color="primary">
+    <ion-title>Véhicules</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="addCar()">
+        <ion-icon name="add"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <ion-header collapse="condense">
+    <ion-toolbar>
+      <ion-title size="large">Véhicules</ion-title>
+    </ion-toolbar>
+  </ion-header>
+
+  <div class="cars-container">
+    <!-- Search Bar -->
+    <ion-searchbar
+      [(ngModel)]="searchTerm"
+      (ionInput)="filterCars()"
+      placeholder="Rechercher par matricule, marque ou chauffeur"
+      debounce="300"
+    >
+    </ion-searchbar>
+
+    <!-- Cars List -->
+    <div *ngIf="filteredCars.length > 0; else noCars">
+      <ion-card *ngFor="let car of filteredCars" class="car-card">
+        <ion-card-header>
+          <div class="car-header">
+            <div class="car-info">
+              <ion-card-title>{{car.matricule}}</ion-card-title>
+              <ion-card-subtitle
+                >{{car.marque}} {{car.model}}</ion-card-subtitle
+              >
+            </div>
+            <div class="car-actions">
+              <ion-button fill="clear" (click)="editCar(car)">
+                <ion-icon name="create" color="primary"></ion-icon>
+              </ion-button>
+              <ion-button fill="clear" (click)="deleteCar(car)">
+                <ion-icon name="trash" color="danger"></ion-icon>
+              </ion-button>
+            </div>
+          </div>
+        </ion-card-header>
+        <ion-card-content>
+          <div class="car-details">
+            <div class="detail-item">
+              <ion-icon name="person" color="primary"></ion-icon>
+              <span>{{car.chauffeur}}</span>
+            </div>
+            <div class="detail-item">
+              <ion-icon name="call" color="primary"></ion-icon>
+              <span>{{car.tel}}</span>
+            </div>
+          </div>
+
+          <!-- Documents count -->
+          <div
+            class="documents-info"
+            *ngIf="getCarDocumentsCount(car.matricule) > 0"
+          >
+            <ion-chip color="secondary">
+              <ion-icon name="document-text"></ion-icon>
+              <ion-label
+                >{{getCarDocumentsCount(car.matricule)}} document(s)</ion-label
+              >
+            </ion-chip>
+          </div>
+        </ion-card-content>
+      </ion-card>
+    </div>
+
+    <!-- Empty State -->
+    <ng-template #noCars>
+      <div class="empty-state">
+        <ion-icon name="car-sport" color="medium"></ion-icon>
+        <h3>Aucun véhicule trouvé</h3>
+        <p *ngIf="searchTerm">
+          Aucun véhicule ne correspond à votre recherche.
+        </p>
+        <p *ngIf="!searchTerm">Commencez par ajouter votre premier véhicule.</p>
+        <ion-button (click)="addCar()" color="primary">
+          <ion-icon name="add" slot="start"></ion-icon>
+          Ajouter un Véhicule
+        </ion-button>
+      </div>
+    </ng-template>
+  </div>
+
+  <!-- Floating Action Button -->
+  <ion-fab vertical="bottom" horizontal="end" slot="fixed">
+    <ion-fab-button (click)="addCar()" color="primary">
+      <ion-icon name="add"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
+</ion-content>

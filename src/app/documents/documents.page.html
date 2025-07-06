@@ -1,0 +1,138 @@
+<ion-header [translucent]="true">
+  <ion-toolbar color="primary">
+    <ion-title>Documents</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="addDocument()">
+        <ion-icon name="add"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <ion-header collapse="condense">
+    <ion-toolbar>
+      <ion-title size="large">Documents</ion-title>
+    </ion-toolbar>
+  </ion-header>
+
+  <div class="documents-container">
+    <!-- Search and Filter -->
+    <div class="search-filter-section">
+      <ion-searchbar
+        [(ngModel)]="searchTerm"
+        (ionInput)="filterDocuments()"
+        placeholder="Rechercher par référence, type ou matricule"
+        debounce="300"
+      >
+      </ion-searchbar>
+
+      <div class="filter-chips">
+        <ion-chip
+          [color]="activeFilter === 'all' ? 'primary' : 'medium'"
+          (click)="setFilter('all')"
+        >
+          <ion-label>Tous</ion-label>
+        </ion-chip>
+        <ion-chip
+          [color]="activeFilter === 'active' ? 'primary' : 'medium'"
+          (click)="setFilter('active')"
+        >
+          <ion-label>Actifs</ion-label>
+        </ion-chip>
+        <ion-chip
+          [color]="activeFilter === 'expired' ? 'primary' : 'medium'"
+          (click)="setFilter('expired')"
+        >
+          <ion-label>Expirés</ion-label>
+        </ion-chip>
+        <ion-chip
+          [color]="activeFilter === 'expiring' ? 'primary' : 'medium'"
+          (click)="setFilter('expiring')"
+        >
+          <ion-label>Expirent Bientôt</ion-label>
+        </ion-chip>
+      </div>
+    </div>
+
+    <!-- Documents List -->
+    <div *ngIf="filteredDocuments.length > 0; else noDocuments">
+      <ion-card
+        *ngFor="let document of filteredDocuments"
+        class="document-card"
+      >
+        <ion-card-header>
+          <div class="document-header">
+            <div class="document-info">
+              <ion-card-title>{{document.typeDocument}}</ion-card-title>
+              <ion-card-subtitle>{{document.reference}}</ion-card-subtitle>
+            </div>
+            <div class="document-actions">
+              <ion-button fill="clear" (click)="editDocument(document)">
+                <ion-icon name="create" color="primary"></ion-icon>
+              </ion-button>
+              <ion-button fill="clear" (click)="deleteDocument(document)">
+                <ion-icon name="trash" color="danger"></ion-icon>
+              </ion-button>
+            </div>
+          </div>
+        </ion-card-header>
+
+        <ion-card-content>
+          <div class="document-details">
+            <div class="detail-item">
+              <ion-icon name="car" color="primary"></ion-icon>
+              <span>{{document.matriculeCar}}</span>
+            </div>
+            <div class="detail-item">
+              <ion-icon name="calendar" color="primary"></ion-icon>
+              <span
+                >Du {{document.dateDebut | date:'dd/MM/yyyy'}} au
+                {{document.dateFin | date:'dd/MM/yyyy'}}</span
+              >
+            </div>
+          </div>
+
+          <!-- Status Badge -->
+          <div class="status-section">
+            <ion-chip [color]="getExpirationStatus(document.dateFin).color">
+              <ion-icon [name]="getStatusIcon(document.dateFin)"></ion-icon>
+              <ion-label
+                >{{getExpirationStatus(document.dateFin).message}}</ion-label
+              >
+            </ion-chip>
+
+            <ion-chip *ngIf="!document.documentActive" color="medium">
+              <ion-label>Inactif</ion-label>
+            </ion-chip>
+          </div>
+        </ion-card-content>
+      </ion-card>
+    </div>
+
+    <!-- Empty State -->
+    <ng-template #noDocuments>
+      <div class="empty-state">
+        <ion-icon name="document-text" color="medium"></ion-icon>
+        <h3>Aucun document trouvé</h3>
+        <p *ngIf="searchTerm || activeFilter !== 'all'">
+          Aucun document ne correspond à vos critères.
+        </p>
+        <p *ngIf="!searchTerm && activeFilter === 'all'">
+          Commencez par ajouter votre premier document.
+        </p>
+        <ion-button (click)="addDocument()" color="primary">
+          <ion-icon name="add" slot="start"></ion-icon>
+          Ajouter un Document
+        </ion-button>
+      </div>
+    </ng-template>
+  </div>
+
+  <!-- Floating Action Button -->
+  <ion-fab vertical="bottom" horizontal="end" slot="fixed">
+    <ion-fab-button (click)="addDocument()" color="primary">
+      <ion-icon name="add"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
+</ion-content>
