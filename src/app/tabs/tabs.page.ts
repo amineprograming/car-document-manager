@@ -7,13 +7,7 @@ import {
   IonLabel,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import {
-  speedometer,
-  car,
-  documentText,
-  notifications,
-  settings,
-} from 'ionicons/icons';
+import { speedometer, car, documentText, settings } from 'ionicons/icons';
 
 @Component({
   selector: 'app-tabs',
@@ -25,6 +19,6 @@ export class TabsPage {
   public environmentInjector = inject(EnvironmentInjector);
 
   constructor() {
-    addIcons({ speedometer, car, documentText, notifications, settings });
+    addIcons({ speedometer, car, documentText, settings });
   }
 }

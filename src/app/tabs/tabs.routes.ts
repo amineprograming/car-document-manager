@@ -22,11 +22,6 @@ export const routes: Routes = [
           import('../documents/documents.page').then((m) => m.DocumentsPage),
       },
       {
-        path: 'alerts',
-        loadComponent: () =>
-          import('../alerts/alerts.page').then((m) => m.AlertsPage),
-      },
-      {
         path: 'settings',
         loadComponent: () =>
           import('../settings/settings.page').then((m) => m.SettingsPage),

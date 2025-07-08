@@ -17,6 +17,7 @@ import {
   ModalController,
 } from '@ionic/angular/standalone';
 import { Document } from '../models/document.model';
+import { Car } from '../models/car.model';
 
 @Component({
   selector: 'app-document-form-modal',
@@ -62,6 +63,22 @@ import { Document } from '../models/document.model';
             <ion-select-option value="Carte Grise"
               >Carte Grise</ion-select-option
             >
+          </ion-select>
+        </ion-item>
+
+        <!-- Vehicle (Matricule) Field -->
+        <ion-item>
+          <ion-label position="stacked">Véhicule (Matricule) *</ion-label>
+          <ion-select
+            [(ngModel)]="formData.matriculeCar"
+            name="matriculeCar"
+            placeholder="Sélectionnez un véhicule"
+            required
+            #matriculeField="ngModel"
+          >
+            <ion-select-option *ngFor="let car of cars" [value]="car.matricule">
+              {{ car.matricule }} - {{ car.marque }} {{ car.model }}
+            </ion-select-option>
           </ion-select>
         </ion-item>
 
@@ -163,7 +180,7 @@ import { Document } from '../models/document.model';
 })
 export class DocumentFormModalComponent implements OnInit {
   @Input() document?: Document;
-  @Input() selectedMatricule!: string;
+  @Input() cars: Car[] = [];
   @Input() isEditMode: boolean = false;
 
   formData = {
@@ -178,15 +195,12 @@ export class DocumentFormModalComponent implements OnInit {
   constructor(private modalController: ModalController) {}
 
   ngOnInit() {
-    // Set matricule from input
-    this.formData.matriculeCar = this.selectedMatricule;
-
     // If editing, populate form with existing data
     if (this.isEditMode && this.document) {
       this.formData = {
         reference: this.document.reference || '',
         typeDocument: this.document.typeDocument || '',
-        matriculeCar: this.selectedMatricule,
+        matriculeCar: this.document.matriculeCar || '',
         dateDebut: this.formatDateForInput(this.document.dateDebut),
         dateFin: this.formatDateForInput(this.document.dateFin),
         documentActive: this.document.documentActive !== false,

@@ -1,13 +1,143 @@
 <ion-header [translucent]="true">
   <ion-toolbar>
-    <ion-title>settings</ion-title>
+    <ion-title>Réglages</ion-title>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true">
+<ion-content [fullscreen]="true" class="ion-padding">
   <ion-header collapse="condense">
     <ion-toolbar>
-      <ion-title size="large">settings</ion-title>
+      <ion-title size="large">Réglages</ion-title>
     </ion-toolbar>
   </ion-header>
+
+  <!-- Configuration des notifications -->
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>
+        <ion-icon name="notifications-outline" slot="start"></ion-icon>
+        Configuration des Notifications
+      </ion-card-title>
+      <ion-card-subtitle>
+        Personnalisez les alertes pour les documents expirés
+      </ion-card-subtitle>
+    </ion-card-header>
+
+    <ion-card-content>
+      <!-- Activer/Désactiver les notifications -->
+      <ion-item>
+        <ion-checkbox
+          [(ngModel)]="config.enableNotifications"
+          (ionChange)="onNotificationToggle()"
+          slot="start"
+        ></ion-checkbox>
+        <ion-label class="ion-margin-start">
+          <h3>Activer les notifications</h3>
+          <p>Recevoir des alertes pour les documents expirés</p>
+        </ion-label>
+      </ion-item>
+
+      <!-- Nombre de jours avant expiration -->
+      <ion-item [class.item-disabled]="!config.enableNotifications">
+        <ion-label position="stacked">
+          <h3>Jours avant expiration</h3>
+          <p>Nombre de jours avant l'expiration pour être notifié</p>
+        </ion-label>
+        <ion-input
+          [(ngModel)]="config.notificationDays"
+          type="number"
+          min="1"
+          max="365"
+          placeholder="30"
+          [disabled]="!config.enableNotifications"
+          (ionBlur)="onNotificationDaysChange()"
+        ></ion-input>
+      </ion-item>
+
+      <!-- Heures de notifications -->
+      <ion-item [class.item-disabled]="!config.enableNotifications">
+        <ion-label position="stacked">
+          <h3>Heures de notifications</h3>
+          <p>Sélectionnez les heures auxquelles recevoir les notifications</p>
+        </ion-label>
+      </ion-item>
+
+      <!-- Liste des heures sélectionnées -->
+      <div class="notification-hours" *ngIf="config.enableNotifications">
+        <ion-chip
+          *ngFor="let hour of config.notificationHours; let i = index"
+          color="primary"
+          (click)="removeNotificationHour(i)"
+        >
+          <ion-label>{{ formatHour(hour) }}</ion-label>
+          <ion-icon name="close-circle"></ion-icon>
+        </ion-chip>
+
+        <ion-button
+          fill="outline"
+          size="small"
+          (click)="showHourPicker()"
+          [disabled]="config.notificationHours.length >= 6"
+        >
+          <ion-icon name="add" slot="icon-only"></ion-icon>
+        </ion-button>
+      </div>
+
+      <!-- Sélecteur d'heure -->
+      <ion-item *ngIf="showHourSelector && config.enableNotifications">
+        <ion-label position="stacked">Ajouter une heure</ion-label>
+        <ion-select
+          [(ngModel)]="selectedHour"
+          placeholder="Choisir une heure"
+          (ionChange)="addNotificationHour()"
+        >
+          <ion-select-option *ngFor="let hour of availableHours" [value]="hour">
+            {{ formatHour(hour) }}
+          </ion-select-option>
+        </ion-select>
+      </ion-item>
+    </ion-card-content>
+  </ion-card>
+
+  <!-- Configuration générale -->
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>
+        <ion-icon name="settings-outline" slot="start"></ion-icon>
+        Configuration Générale
+      </ion-card-title>
+    </ion-card-header>
+
+    <ion-card-content>
+      <!-- Bouton pour réinitialiser -->
+      <ion-item button (click)="resetToDefaults()">
+        <ion-icon name="refresh-outline" slot="start"></ion-icon>
+        <ion-label>
+          <h3>Réinitialiser aux valeurs par défaut</h3>
+          <p>Remettre tous les paramètres à leur valeur d'origine</p>
+        </ion-label>
+      </ion-item>
+
+      <!-- Informations sur la configuration actuelle -->
+      <ion-item>
+        <ion-label>
+          <h3>Configuration actuelle</h3>
+          <p>
+            Notifications: {{ config.enableNotifications ? 'Activées' :
+            'Désactivées' }}<br />
+            Jours avant expiration: {{ config.notificationDays }}<br />
+            Heures: {{ getNotificationHoursText() }}
+          </p>
+        </ion-label>
+      </ion-item>
+    </ion-card-content>
+  </ion-card>
+
+  <!-- Actions -->
+  <div class="actions ion-margin-top">
+    <ion-button expand="block" color="success" (click)="saveConfiguration()">
+      <ion-icon name="save-outline" slot="start"></ion-icon>
+      Sauvegarder la Configuration
+    </ion-button>
+  </div>
 </ion-content>

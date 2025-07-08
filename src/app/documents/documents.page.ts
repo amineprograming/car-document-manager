@@ -38,7 +38,6 @@ import {
 import { Document } from '../models/document.model';
 import { Car } from '../models/car.model';
 import { DatabaseService } from '../services/firebase-database.service';
-import { CarSelectionModalComponent } from './car-selection-modal.component';
 import { DocumentFormModalComponent } from './document-form-modal.component';
 
 @Component({
@@ -207,27 +206,11 @@ export class DocumentsPage implements OnInit {
       return;
     }
 
-    // First, show car selection modal
-    const carModal = await this.modalController.create({
-      component: CarSelectionModalComponent,
-      componentProps: {
-        cars: this.cars,
-        selectedMatricule: this.cars[0]?.matricule,
-      },
-    });
-
-    await carModal.present();
-    const { data: selectedMatricule, role } = await carModal.onWillDismiss();
-
-    if (role !== 'confirm' || !selectedMatricule) {
-      return;
-    }
-
-    // Then show document form modal
+    // Show document form modal with cars list
     const documentModal = await this.modalController.create({
       component: DocumentFormModalComponent,
       componentProps: {
-        selectedMatricule: selectedMatricule,
+        cars: this.cars,
         isEditMode: false,
       },
     });
@@ -248,28 +231,12 @@ export class DocumentsPage implements OnInit {
   }
 
   async editDocument(document: Document) {
-    // First, show car selection modal
-    const carModal = await this.modalController.create({
-      component: CarSelectionModalComponent,
-      componentProps: {
-        cars: this.cars,
-        selectedMatricule: document.matriculeCar,
-      },
-    });
-
-    await carModal.present();
-    const { data: selectedMatricule, role } = await carModal.onWillDismiss();
-
-    if (role !== 'confirm' || !selectedMatricule) {
-      return;
-    }
-
-    // Then show document form modal
+    // Show document form modal with cars list and existing document data
     const documentModal = await this.modalController.create({
       component: DocumentFormModalComponent,
       componentProps: {
         document: document,
-        selectedMatricule: selectedMatricule,
+        cars: this.cars,
         isEditMode: true,
       },
     });
