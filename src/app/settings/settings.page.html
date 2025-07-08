@@ -109,6 +109,15 @@
     </ion-card-header>
 
     <ion-card-content>
+      <!-- Bouton pour tester les notifications -->
+      <ion-item button (click)="testNotification()">
+        <ion-icon name="notifications-outline" slot="start"></ion-icon>
+        <ion-label>
+          <h3>Tester les notifications</h3>
+          <p>Envoyer une notification de test dans 5 secondes</p>
+        </ion-label>
+      </ion-item>
+
       <!-- Bouton pour réinitialiser -->
       <ion-item button (click)="resetToDefaults()">
         <ion-icon name="refresh-outline" slot="start"></ion-icon>

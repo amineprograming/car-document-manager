@@ -39,6 +39,7 @@ import { Document } from '../models/document.model';
 import { Car } from '../models/car.model';
 import { DatabaseService } from '../services/firebase-database.service';
 import { DocumentFormModalComponent } from './document-form-modal.component';
+import { PushNotificationService } from '../services/push-notification.service';
 
 @Component({
   selector: 'app-documents',
@@ -78,7 +79,8 @@ export class DocumentsPage implements OnInit {
     private databaseService: DatabaseService,
     private toastController: ToastController,
     private alertController: AlertController,
-    private modalController: ModalController
+    private modalController: ModalController,
+    private pushNotificationService: PushNotificationService
   ) {
     addIcons({
       add,
@@ -224,6 +226,8 @@ export class DocumentsPage implements OnInit {
       if (success) {
         await this.showToast('Document ajouté avec succès', 'success');
         await this.loadDocuments();
+        // Update push notifications after adding document
+        await this.pushNotificationService.updateNotifications();
       } else {
         await this.showToast("Erreur lors de l'ajout du document", 'danger');
       }
@@ -250,6 +254,8 @@ export class DocumentsPage implements OnInit {
       if (success) {
         await this.showToast('Document modifié avec succès', 'success');
         await this.loadDocuments();
+        // Update push notifications after editing document
+        await this.pushNotificationService.updateNotifications();
       } else {
         await this.showToast(
           'Erreur lors de la modification du document',
@@ -281,8 +287,14 @@ export class DocumentsPage implements OnInit {
               document.id
             );
             if (success) {
+              // Cancel notifications for this document before deleting
+              await this.pushNotificationService.cancelDocumentNotifications(
+                document.id
+              );
               await this.showToast('Document supprimé avec succès', 'success');
               await this.loadDocuments();
+              // Update remaining notifications
+              await this.pushNotificationService.updateNotifications();
             } else {
               await this.showToast(
                 'Erreur lors de la suppression du document',

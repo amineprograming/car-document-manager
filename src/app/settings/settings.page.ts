@@ -33,6 +33,7 @@ import {
   saveOutline,
 } from 'ionicons/icons';
 import { ConfigService, AppConfig } from '../services/config.service';
+import { PushNotificationService } from '../services/push-notification.service';
 
 @Component({
   selector: 'app-settings',
@@ -76,7 +77,8 @@ export class SettingsPage implements OnInit {
   constructor(
     private configService: ConfigService,
     private toastController: ToastController,
-    private alertController: AlertController
+    private alertController: AlertController,
+    private pushNotificationService: PushNotificationService
   ) {
     addIcons({
       notificationsOutline,
@@ -116,8 +118,9 @@ export class SettingsPage implements OnInit {
   /**
    * Gère le changement d'état des notifications
    */
-  onNotificationToggle() {
+  async onNotificationToggle() {
     this.configService.toggleNotifications(this.config.enableNotifications);
+    await this.pushNotificationService.updateNotifications();
     this.showToast(
       this.config.enableNotifications
         ? 'Notifications activées'
@@ -128,7 +131,7 @@ export class SettingsPage implements OnInit {
   /**
    * Gère le changement du nombre de jours
    */
-  onNotificationDaysChange() {
+  async onNotificationDaysChange() {
     if (this.config.notificationDays < 1) {
       this.config.notificationDays = 1;
     } else if (this.config.notificationDays > 365) {
@@ -138,6 +141,7 @@ export class SettingsPage implements OnInit {
     if (
       this.configService.updateNotificationDays(this.config.notificationDays)
     ) {
+      await this.pushNotificationService.updateNotifications();
       this.showToast('Nombre de jours mis à jour');
     } else {
       this.showToast('Erreur lors de la mise à jour', 'danger');
@@ -155,7 +159,7 @@ export class SettingsPage implements OnInit {
   /**
    * Ajoute une heure de notification
    */
-  addNotificationHour() {
+  async addNotificationHour() {
     if (
       this.selectedHour !== null &&
       !this.config.notificationHours.includes(this.selectedHour)
@@ -171,6 +175,7 @@ export class SettingsPage implements OnInit {
         this.generateAvailableHours();
         this.showHourSelector = false;
         this.selectedHour = null;
+        await this.pushNotificationService.updateNotifications();
         this.showToast('Heure de notification ajoutée');
       } else {
         this.showToast("Erreur lors de l'ajout de l'heure", 'danger');
@@ -181,7 +186,7 @@ export class SettingsPage implements OnInit {
   /**
    * Supprime une heure de notification
    */
-  removeNotificationHour(index: number) {
+  async removeNotificationHour(index: number) {
     if (this.config.notificationHours.length > 1) {
       this.config.notificationHours.splice(index, 1);
 
@@ -191,6 +196,7 @@ export class SettingsPage implements OnInit {
         )
       ) {
         this.generateAvailableHours();
+        await this.pushNotificationService.updateNotifications();
         this.showToast('Heure de notification supprimée');
       } else {
         this.showToast('Erreur lors de la suppression', 'danger');
@@ -238,9 +244,10 @@ export class SettingsPage implements OnInit {
         {
           text: 'Réinitialiser',
           role: 'destructive',
-          handler: () => {
+          handler: async () => {
             if (this.configService.resetToDefaults()) {
               this.loadConfiguration();
+              await this.pushNotificationService.updateNotifications();
               this.showToast('Configuration réinitialisée');
             } else {
               this.showToast('Erreur lors de la réinitialisation', 'danger');
@@ -256,11 +263,25 @@ export class SettingsPage implements OnInit {
   /**
    * Sauvegarde la configuration
    */
-  saveConfiguration() {
+  async saveConfiguration() {
     if (this.configService.saveConfig(this.config)) {
+      await this.pushNotificationService.updateNotifications();
       this.showToast('Configuration sauvegardée avec succès');
     } else {
       this.showToast('Erreur lors de la sauvegarde', 'danger');
+    }
+  }
+
+  /**
+   * Test notification (for development/debugging)
+   */
+  async testNotification() {
+    try {
+      await this.pushNotificationService.testNotification();
+      this.showToast('Notification de test programmée dans 5 secondes');
+    } catch (error) {
+      console.error('Error testing notification:', error);
+      this.showToast('Erreur lors du test de notification', 'danger');
     }
   }
 
