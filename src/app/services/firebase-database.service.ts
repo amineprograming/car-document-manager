@@ -10,8 +10,8 @@ import {
   query,
   where,
   orderBy,
-  Timestamp,
 } from '@angular/fire/firestore';
+import { Timestamp } from 'firebase/firestore';
 import { Car } from '../models/car.model';
 import { Document } from '../models/document.model';
 
