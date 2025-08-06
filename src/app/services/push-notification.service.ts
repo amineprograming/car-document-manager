@@ -26,6 +26,8 @@ export class PushNotificationService {
     private configService: ConfigService,
     private databaseService: DatabaseService
   ) {
+    // Inject DatabaseService to ConfigService to avoid circular dependency
+    this.configService.setDatabaseService(this.databaseService);
     this.initializeNotifications();
   }
 

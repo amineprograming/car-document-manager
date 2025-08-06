@@ -34,6 +34,7 @@ import {
 } from 'ionicons/icons';
 import { ConfigService, AppConfig } from '../services/config.service';
 import { PushNotificationService } from '../services/push-notification.service';
+import { DatabaseService } from '../services/firebase-database.service';
 
 @Component({
   selector: 'app-settings',
@@ -78,7 +79,8 @@ export class SettingsPage implements OnInit {
     private configService: ConfigService,
     private toastController: ToastController,
     private alertController: AlertController,
-    private pushNotificationService: PushNotificationService
+    private pushNotificationService: PushNotificationService,
+    private databaseService: DatabaseService
   ) {
     addIcons({
       notificationsOutline,
@@ -88,6 +90,9 @@ export class SettingsPage implements OnInit {
       refreshOutline,
       saveOutline,
     });
+
+    // Inject DatabaseService to ConfigService to avoid circular dependency
+    this.configService.setDatabaseService(this.databaseService);
   }
 
   ngOnInit() {
@@ -98,9 +103,14 @@ export class SettingsPage implements OnInit {
   /**
    * Charge la configuration depuis le service
    */
-  loadConfiguration() {
-    this.config = this.configService.getConfig();
-    this.generateAvailableHours();
+  async loadConfiguration() {
+    try {
+      this.config = this.configService.getConfig();
+      this.generateAvailableHours();
+    } catch (error) {
+      console.error('Error loading configuration:', error);
+      this.showToast('Erreur lors du chargement des paramètres', 'danger');
+    }
   }
 
   /**
@@ -119,13 +129,20 @@ export class SettingsPage implements OnInit {
    * Gère le changement d'état des notifications
    */
   async onNotificationToggle() {
-    this.configService.toggleNotifications(this.config.enableNotifications);
-    await this.pushNotificationService.updateNotifications();
-    this.showToast(
-      this.config.enableNotifications
-        ? 'Notifications activées'
-        : 'Notifications désactivées'
-    );
+    try {
+      await this.configService.toggleNotifications(
+        this.config.enableNotifications
+      );
+      await this.pushNotificationService.updateNotifications();
+      this.showToast(
+        this.config.enableNotifications
+          ? 'Notifications activées'
+          : 'Notifications désactivées'
+      );
+    } catch (error) {
+      console.error('Error toggling notifications:', error);
+      this.showToast('Erreur lors de la mise à jour', 'danger');
+    }
   }
 
   /**
@@ -138,12 +155,18 @@ export class SettingsPage implements OnInit {
       this.config.notificationDays = 365;
     }
 
-    if (
-      this.configService.updateNotificationDays(this.config.notificationDays)
-    ) {
-      await this.pushNotificationService.updateNotifications();
-      this.showToast('Nombre de jours mis à jour');
-    } else {
+    try {
+      const updated = await this.configService.updateNotificationDays(
+        this.config.notificationDays
+      );
+      if (updated) {
+        await this.pushNotificationService.updateNotifications();
+        this.showToast('Nombre de jours mis à jour');
+      } else {
+        this.showToast('Erreur lors de la mise à jour', 'danger');
+      }
+    } catch (error) {
+      console.error('Error updating notification days:', error);
       this.showToast('Erreur lors de la mise à jour', 'danger');
     }
   }
@@ -167,17 +190,21 @@ export class SettingsPage implements OnInit {
       this.config.notificationHours.push(this.selectedHour);
       this.config.notificationHours.sort((a, b) => a - b);
 
-      if (
-        this.configService.updateNotificationHours(
+      try {
+        const updated = await this.configService.updateNotificationHours(
           this.config.notificationHours
-        )
-      ) {
-        this.generateAvailableHours();
-        this.showHourSelector = false;
-        this.selectedHour = null;
-        await this.pushNotificationService.updateNotifications();
-        this.showToast('Heure de notification ajoutée');
-      } else {
+        );
+        if (updated) {
+          this.generateAvailableHours();
+          this.showHourSelector = false;
+          this.selectedHour = null;
+          await this.pushNotificationService.updateNotifications();
+          this.showToast('Heure de notification ajoutée');
+        } else {
+          this.showToast("Erreur lors de l'ajout de l'heure", 'danger');
+        }
+      } catch (error) {
+        console.error('Error adding notification hour:', error);
         this.showToast("Erreur lors de l'ajout de l'heure", 'danger');
       }
     }
@@ -190,15 +217,19 @@ export class SettingsPage implements OnInit {
     if (this.config.notificationHours.length > 1) {
       this.config.notificationHours.splice(index, 1);
 
-      if (
-        this.configService.updateNotificationHours(
+      try {
+        const updated = await this.configService.updateNotificationHours(
           this.config.notificationHours
-        )
-      ) {
-        this.generateAvailableHours();
-        await this.pushNotificationService.updateNotifications();
-        this.showToast('Heure de notification supprimée');
-      } else {
+        );
+        if (updated) {
+          this.generateAvailableHours();
+          await this.pushNotificationService.updateNotifications();
+          this.showToast('Heure de notification supprimée');
+        } else {
+          this.showToast('Erreur lors de la suppression', 'danger');
+        }
+      } catch (error) {
+        console.error('Error removing notification hour:', error);
         this.showToast('Erreur lors de la suppression', 'danger');
       }
     } else {
@@ -245,11 +276,17 @@ export class SettingsPage implements OnInit {
           text: 'Réinitialiser',
           role: 'destructive',
           handler: async () => {
-            if (this.configService.resetToDefaults()) {
-              this.loadConfiguration();
-              await this.pushNotificationService.updateNotifications();
-              this.showToast('Configuration réinitialisée');
-            } else {
+            try {
+              const reset = await this.configService.resetToDefaults();
+              if (reset) {
+                await this.loadConfiguration();
+                await this.pushNotificationService.updateNotifications();
+                this.showToast('Configuration réinitialisée');
+              } else {
+                this.showToast('Erreur lors de la réinitialisation', 'danger');
+              }
+            } catch (error) {
+              console.error('Error resetting to defaults:', error);
               this.showToast('Erreur lors de la réinitialisation', 'danger');
             }
           },
@@ -264,10 +301,16 @@ export class SettingsPage implements OnInit {
    * Sauvegarde la configuration
    */
   async saveConfiguration() {
-    if (this.configService.saveConfig(this.config)) {
-      await this.pushNotificationService.updateNotifications();
-      this.showToast('Configuration sauvegardée avec succès');
-    } else {
+    try {
+      const saved = await this.configService.saveConfig(this.config);
+      if (saved) {
+        await this.pushNotificationService.updateNotifications();
+        this.showToast('Configuration sauvegardée avec succès');
+      } else {
+        this.showToast('Erreur lors de la sauvegarde', 'danger');
+      }
+    } catch (error) {
+      console.error('Error saving configuration:', error);
       this.showToast('Erreur lors de la sauvegarde', 'danger');
     }
   }

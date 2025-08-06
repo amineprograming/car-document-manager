@@ -14,6 +14,7 @@ import {
 import { Timestamp } from 'firebase/firestore';
 import { Car } from '../models/car.model';
 import { Document } from '../models/document.model';
+import { AppConfig } from './config.service';
 
 @Injectable({
   providedIn: 'root',
@@ -322,44 +323,89 @@ export class DatabaseService {
   }
 
   // Settings operations (stored in Firestore as well)
-  async getSettings(): Promise<{ notificationDays: number }> {
+  async getUserSettings(): Promise<AppConfig> {
     try {
-      const settingsCollection = collection(this.firestore, 'settings');
+      const settingsCollection = collection(this.firestore, 'userSettings');
       const querySnapshot = await getDocs(settingsCollection);
 
       if (!querySnapshot.empty) {
         const settingsDoc = querySnapshot.docs[0];
+        const data = settingsDoc.data();
         return {
-          notificationDays: settingsDoc.data()['notificationDays'] || 7,
+          notificationDays: data['notificationDays'] || 30,
+          notificationHours: data['notificationHours'] || [9, 18],
+          enableNotifications:
+            data['enableNotifications'] !== undefined
+              ? data['enableNotifications']
+              : true,
         };
       }
 
       // Create default settings if none exist
-      await addDoc(settingsCollection, { notificationDays: 7 });
-      return { notificationDays: 7 };
+      const defaultSettings: AppConfig = {
+        notificationDays: 30,
+        notificationHours: [9, 18],
+        enableNotifications: true,
+      };
+      await addDoc(settingsCollection, defaultSettings);
+      return defaultSettings;
     } catch (error) {
-      console.error('Error getting settings:', error);
-      return { notificationDays: 7 };
+      console.error('Error getting user settings:', error);
+      // Return default settings in case of error
+      return {
+        notificationDays: 30,
+        notificationHours: [9, 18],
+        enableNotifications: true,
+      };
     }
   }
 
-  async updateSettings(notificationDays: number): Promise<boolean> {
+  async saveUserSettings(settings: AppConfig): Promise<boolean> {
     try {
-      const settingsCollection = collection(this.firestore, 'settings');
+      const settingsCollection = collection(this.firestore, 'userSettings');
       const querySnapshot = await getDocs(settingsCollection);
 
       if (!querySnapshot.empty) {
         const settingsDoc = doc(
           this.firestore,
-          'settings',
+          'userSettings',
           querySnapshot.docs[0].id
         );
-        await updateDoc(settingsDoc, { notificationDays });
+        await updateDoc(settingsDoc, {
+          notificationDays: settings.notificationDays,
+          notificationHours: settings.notificationHours,
+          enableNotifications: settings.enableNotifications,
+          updatedAt: Timestamp.now(),
+        });
       } else {
-        await addDoc(settingsCollection, { notificationDays });
+        await addDoc(settingsCollection, {
+          ...settings,
+          createdAt: Timestamp.now(),
+          updatedAt: Timestamp.now(),
+        });
       }
 
       return true;
+    } catch (error) {
+      console.error('Error saving user settings:', error);
+      return false;
+    }
+  }
+
+  // Legacy settings methods - keeping for backward compatibility
+  async getSettings(): Promise<{ notificationDays: number }> {
+    const userSettings = await this.getUserSettings();
+    return { notificationDays: userSettings.notificationDays };
+  }
+
+  async updateSettings(notificationDays: number): Promise<boolean> {
+    try {
+      const currentSettings = await this.getUserSettings();
+      const updatedSettings: AppConfig = {
+        ...currentSettings,
+        notificationDays: notificationDays,
+      };
+      return await this.saveUserSettings(updatedSettings);
     } catch (error) {
       console.error('Error updating settings:', error);
       return false;

@@ -21,7 +21,6 @@ import {
   IonFabButton,
   ToastController,
   AlertController,
-  ModalController,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import {
@@ -38,8 +37,6 @@ import {
 import { Document } from '../models/document.model';
 import { Car } from '../models/car.model';
 import { DatabaseService } from '../services/firebase-database.service';
-import { DocumentFormModalComponent } from './document-form-modal.component';
-import { PushNotificationService } from '../services/push-notification.service';
 
 @Component({
   selector: 'app-documents',
@@ -78,9 +75,7 @@ export class DocumentsPage implements OnInit {
   constructor(
     private databaseService: DatabaseService,
     private toastController: ToastController,
-    private alertController: AlertController,
-    private modalController: ModalController,
-    private pushNotificationService: PushNotificationService
+    private alertController: AlertController
   ) {
     addIcons({
       add,
@@ -208,61 +203,178 @@ export class DocumentsPage implements OnInit {
       return;
     }
 
-    // Show document form modal with cars list
-    const documentModal = await this.modalController.create({
-      component: DocumentFormModalComponent,
-      componentProps: {
-        cars: this.cars,
-        isEditMode: false,
+    // First step: Get document details including matricule selection
+    const matriculeInputs: any[] = [
+      {
+        name: 'reference',
+        type: 'text',
+        placeholder: 'Référence du document (optionnel)',
       },
+      {
+        name: 'typeDocument',
+        type: 'text',
+        placeholder: 'Type de document *',
+      },
+      {
+        name: 'dateDebut',
+        type: 'date',
+        placeholder: 'Date de début',
+        value: new Date().toISOString().split('T')[0],
+      },
+      {
+        name: 'dateFin',
+        type: 'date',
+        placeholder: 'Date de fin *',
+      },
+    ];
+
+    // Add radio buttons for each car matricule
+    this.cars.forEach((car, index) => {
+      matriculeInputs.push({
+        name: 'matricule',
+        type: 'radio',
+        label: car.matricule,
+        value: car.matricule,
+        checked: index === 0, // Select first car by default
+      });
     });
 
-    await documentModal.present();
-    const { data: documentData, role: documentRole } =
-      await documentModal.onWillDismiss();
+    const alert = await this.alertController.create({
+      header: 'Ajouter un Document',
+      inputs: matriculeInputs,
+      buttons: [
+        {
+          text: 'Annuler',
+          role: 'cancel',
+        },
+        {
+          text: 'Ajouter',
+          handler: async (data) => {
+            if (!data.typeDocument || !data.dateFin || !data.matricule) {
+              await this.showToast(
+                'Veuillez remplir tous les champs obligatoires',
+                'danger'
+              );
+              return false;
+            }
 
-    if (documentRole === 'confirm' && documentData) {
-      const success = await this.databaseService.addDocument(documentData);
-      if (success) {
-        await this.showToast('Document ajouté avec succès', 'success');
-        await this.loadDocuments();
-        // Update push notifications after adding document
-        await this.pushNotificationService.updateNotifications();
-      } else {
-        await this.showToast("Erreur lors de l'ajout du document", 'danger');
-      }
-    }
+            const document: Omit<Document, 'id'> = {
+              reference: data.reference || '',
+              typeDocument: data.typeDocument,
+              matriculeCar: data.matricule,
+              dateDebut: data.dateDebut ? new Date(data.dateDebut) : new Date(),
+              dateFin: new Date(data.dateFin),
+              documentActive: true,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            };
+
+            const success = await this.databaseService.addDocument(document);
+            if (success) {
+              await this.showToast('Document ajouté avec succès', 'success');
+              await this.loadDocuments();
+            } else {
+              await this.showToast(
+                "Erreur lors de l'ajout du document",
+                'danger'
+              );
+            }
+            return true;
+          },
+        },
+      ],
+    });
+
+    await alert.present();
   }
 
   async editDocument(document: Document) {
-    // Show document form modal with cars list and existing document data
-    const documentModal = await this.modalController.create({
-      component: DocumentFormModalComponent,
-      componentProps: {
-        document: document,
-        cars: this.cars,
-        isEditMode: true,
+    const editInputs: any[] = [
+      {
+        name: 'reference',
+        type: 'text',
+        placeholder: 'Référence du document (optionnel)',
+        value: document.reference,
       },
+      {
+        name: 'typeDocument',
+        type: 'text',
+        placeholder: 'Type de document *',
+        value: document.typeDocument,
+      },
+      {
+        name: 'dateDebut',
+        type: 'date',
+        placeholder: 'Date de début',
+        value: this.formatDateForInput(document.dateDebut),
+      },
+      {
+        name: 'dateFin',
+        type: 'date',
+        placeholder: 'Date de fin *',
+        value: this.formatDateForInput(document.dateFin),
+      },
+    ];
+
+    // Add radio buttons for each car matricule
+    this.cars.forEach((car) => {
+      editInputs.push({
+        name: 'matricule',
+        type: 'radio',
+        label: car.matricule,
+        value: car.matricule,
+        checked: car.matricule === document.matriculeCar, // Select current car by default
+      });
     });
 
-    await documentModal.present();
-    const { data: documentData, role: documentRole } =
-      await documentModal.onWillDismiss();
+    const alert = await this.alertController.create({
+      header: 'Modifier le Document',
+      inputs: editInputs,
+      buttons: [
+        {
+          text: 'Annuler',
+          role: 'cancel',
+        },
+        {
+          text: 'Modifier',
+          handler: async (data) => {
+            if (!data.typeDocument || !data.dateFin || !data.matricule) {
+              await this.showToast(
+                'Veuillez remplir tous les champs obligatoires',
+                'danger'
+              );
+              return false;
+            }
 
-    if (documentRole === 'confirm' && documentData) {
-      const success = await this.databaseService.updateDocument(documentData);
-      if (success) {
-        await this.showToast('Document modifié avec succès', 'success');
-        await this.loadDocuments();
-        // Update push notifications after editing document
-        await this.pushNotificationService.updateNotifications();
-      } else {
-        await this.showToast(
-          'Erreur lors de la modification du document',
-          'danger'
-        );
-      }
-    }
+            const updatedDocument: Document = {
+              ...document,
+              reference: data.reference || '',
+              typeDocument: data.typeDocument,
+              matriculeCar: data.matricule,
+              dateDebut: new Date(data.dateDebut),
+              dateFin: new Date(data.dateFin),
+              updatedAt: new Date(),
+            };
+
+            const success = await this.databaseService.updateDocument(
+              updatedDocument
+            );
+            if (success) {
+              await this.showToast('Document modifié avec succès', 'success');
+              await this.loadDocuments();
+            } else {
+              await this.showToast(
+                'Erreur lors de la modification du document',
+                'danger'
+              );
+            }
+            return true;
+          },
+        },
+      ],
+    });
+
+    await alert.present();
   }
 
   async deleteDocument(document: Document) {
@@ -287,14 +399,8 @@ export class DocumentsPage implements OnInit {
               document.id
             );
             if (success) {
-              // Cancel notifications for this document before deleting
-              await this.pushNotificationService.cancelDocumentNotifications(
-                document.id
-              );
               await this.showToast('Document supprimé avec succès', 'success');
               await this.loadDocuments();
-              // Update remaining notifications
-              await this.pushNotificationService.updateNotifications();
             } else {
               await this.showToast(
                 'Erreur lors de la suppression du document',

@@ -18,12 +18,35 @@ export class ConfigService {
     enableNotifications: true,
   };
 
+  private databaseService?: any; // Will be injected later to avoid circular dependency
+  private currentConfig: AppConfig | null = null;
+
   constructor() {}
 
+  // Method to inject DatabaseService after creation to avoid circular dependency
+  setDatabaseService(databaseService: any) {
+    this.databaseService = databaseService;
+    this.loadFromFirebase();
+  }
+
   /**
-   * Récupère la configuration actuelle
+   * Load configuration from Firebase
    */
-  getConfig(): AppConfig {
+  private async loadFromFirebase(): Promise<void> {
+    if (this.databaseService && this.databaseService.getUserSettings) {
+      try {
+        this.currentConfig = await this.databaseService.getUserSettings();
+      } catch (error) {
+        console.error('Error loading settings from Firebase:', error);
+        this.currentConfig = this.getLocalConfig();
+      }
+    }
+  }
+
+  /**
+   * Get configuration from localStorage (fallback)
+   */
+  private getLocalConfig(): AppConfig {
     try {
       const savedConfig = localStorage.getItem(this.CONFIG_KEY);
       if (savedConfig) {
@@ -38,34 +61,62 @@ export class ConfigService {
   }
 
   /**
+   * Récupère la configuration actuelle
+   */
+  getConfig(): AppConfig {
+    if (this.currentConfig) {
+      return { ...this.currentConfig };
+    }
+    return this.getLocalConfig();
+  }
+
+  /**
    * Sauvegarde la configuration
    */
-  saveConfig(config: AppConfig): boolean {
+  async saveConfig(config: AppConfig): Promise<boolean> {
     try {
+      // Save to Firebase first
+      if (this.databaseService && this.databaseService.saveUserSettings) {
+        const firebaseSaved = await this.databaseService.saveUserSettings(
+          config
+        );
+        if (firebaseSaved) {
+          this.currentConfig = { ...config };
+        }
+      }
+
+      // Also save to localStorage as fallback
       localStorage.setItem(this.CONFIG_KEY, JSON.stringify(config));
       return true;
     } catch (error) {
       console.error('Erreur lors de la sauvegarde de la configuration:', error);
-      return false;
+      // Try to save locally at least
+      try {
+        localStorage.setItem(this.CONFIG_KEY, JSON.stringify(config));
+        return true;
+      } catch (localError) {
+        console.error('Erreur lors de la sauvegarde locale:', localError);
+        return false;
+      }
     }
   }
 
   /**
    * Met à jour le nombre de jours pour les notifications
    */
-  updateNotificationDays(days: number): boolean {
+  async updateNotificationDays(days: number): Promise<boolean> {
     if (days < 1 || days > 365) {
       return false;
     }
     const config = this.getConfig();
     config.notificationDays = days;
-    return this.saveConfig(config);
+    return await this.saveConfig(config);
   }
 
   /**
    * Met à jour les heures de notifications
    */
-  updateNotificationHours(hours: number[]): boolean {
+  async updateNotificationHours(hours: number[]): Promise<boolean> {
     if (!hours || hours.length === 0) {
       return false;
     }
@@ -75,23 +126,23 @@ export class ConfigService {
     }
     const config = this.getConfig();
     config.notificationHours = [...hours].sort((a, b) => a - b);
-    return this.saveConfig(config);
+    return await this.saveConfig(config);
   }
 
   /**
    * Active/désactive les notifications
    */
-  toggleNotifications(enabled: boolean): boolean {
+  async toggleNotifications(enabled: boolean): Promise<boolean> {
     const config = this.getConfig();
     config.enableNotifications = enabled;
-    return this.saveConfig(config);
+    return await this.saveConfig(config);
   }
 
   /**
    * Remet la configuration aux valeurs par défaut
    */
-  resetToDefaults(): boolean {
-    return this.saveConfig({ ...this.defaultConfig });
+  async resetToDefaults(): Promise<boolean> {
+    return await this.saveConfig({ ...this.defaultConfig });
   }
 
   /**
