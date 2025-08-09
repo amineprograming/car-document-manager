@@ -7,6 +7,10 @@ import {
   IonButton,
   IonIcon,
   IonSpinner,
+  IonCard,
+  IonCardHeader,
+  IonCardTitle,
+  IonCardContent,
   ToastController,
   LoadingController,
 } from '@ionic/angular/standalone';
@@ -20,6 +24,9 @@ import {
   search,
 } from 'ionicons/icons';
 import { AuthService } from '../services/auth.service';
+import { Capacitor } from '@capacitor/core';
+import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
+import { GOOGLE_AUTH_CONFIG } from '../config/google-auth.config';
 
 @Component({
   selector: 'app-auth',
@@ -31,12 +38,18 @@ import { AuthService } from '../services/auth.service';
     IonButton,
     IonIcon,
     IonSpinner,
+    IonCard,
+    IonCardHeader,
+    IonCardTitle,
+    IonCardContent,
     CommonModule,
     FormsModule,
   ],
 })
 export class AuthPage implements OnInit {
   loading = false;
+  debugInfo: any = null;
+  errorMessage: string = '';
 
   constructor(
     private authService: AuthService,
@@ -74,16 +87,28 @@ export class AuthPage implements OnInit {
         await this.showToast('Connexion réussie!', 'success');
         this.router.navigate(['/tabs/dashboard']);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error signing in:', error);
+      this.errorMessage = error.message || 'Erreur inconnue';
       await this.showToast(
-        'Erreur lors de la connexion. Veuillez réessayer.',
+        error.message || 'Erreur lors de la connexion. Veuillez réessayer.',
         'danger'
       );
     } finally {
       this.loading = false;
       await loading.dismiss();
     }
+  }
+
+  async showDebugInfo() {
+    this.debugInfo = {
+      platform: Capacitor.isNativePlatform() ? 'Mobile (Native)' : 'Web',
+      clientConfigured: !GOOGLE_AUTH_CONFIG.CLIENT_ID.includes(
+        '603137695665-web.apps.googleusercontent.com'
+      ),
+      pluginAvailable: typeof GoogleAuth !== 'undefined',
+      clientId: GOOGLE_AUTH_CONFIG.CLIENT_ID,
+    };
   }
 
   private async showToast(message: string, color: string) {

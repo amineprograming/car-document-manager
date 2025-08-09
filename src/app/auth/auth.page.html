@@ -20,6 +20,37 @@
         <ion-spinner *ngIf="loading" name="crescent"></ion-spinner>
       </ion-button>
 
+      <!-- Debug Info Section -->
+      <ion-card *ngIf="debugInfo" class="debug-card">
+        <ion-card-header>
+          <ion-card-title>Info de Debug</ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+          <p><strong>Plateforme:</strong> {{ debugInfo.platform }}</p>
+          <p>
+            <strong>Client ID configuré:</strong> {{ debugInfo.clientConfigured
+            ? 'Oui' : 'Non' }}
+          </p>
+          <p>
+            <strong>Plugin disponible:</strong> {{ debugInfo.pluginAvailable ?
+            'Oui' : 'Non' }}
+          </p>
+          <p *ngIf="errorMessage" class="error-text">
+            <strong>Erreur:</strong> {{ errorMessage }}
+          </p>
+        </ion-card-content>
+      </ion-card>
+
+      <ion-button
+        expand="block"
+        fill="clear"
+        color="medium"
+        size="small"
+        (click)="showDebugInfo()"
+      >
+        Afficher info debug
+      </ion-button>
+
       <div class="features-list">
         <div class="feature-item">
           <ion-icon name="car" color="primary"></ion-icon>

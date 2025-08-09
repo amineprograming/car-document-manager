@@ -3,15 +3,13 @@ import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 
 // Your web app's Firebase configuration
-// For Firebase JS SDK v9-compat and later, measurementId is optional
 const firebaseConfig = {
-  // You'll need to add your actual Firebase config here
-  apiKey: 'your-api-key',
-  authDomain: 'your-project.firebaseapp.com',
-  projectId: 'your-project-id',
-  storageBucket: 'your-project.appspot.com',
-  messagingSenderId: '123456789',
-  appId: 'your-app-id',
+  apiKey: 'AIzaSyBetwc3QhGdg8R05sMtAopE-uRhuk-KCRY',
+  authDomain: 'car-management-79770.firebaseapp.com',
+  projectId: 'car-management-79770',
+  storageBucket: 'car-management-79770.firebasestorage.app',
+  messagingSenderId: '603137695665',
+  appId: '1:603137695665:web:your-web-app-id',
 };
 
 // Initialize Firebase

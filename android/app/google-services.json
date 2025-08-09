@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "603137695665",
+    "project_id": "car-management-79770",
+    "storage_bucket": "car-management-79770.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:603137695665:android:7af77e300d671a927d6790",
+        "android_client_info": {
+          "package_name": "com.cardocuments.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "603137695665-tmggdqaqetavlkii843agjdv6ncjdk1b.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.cardocuments.app",
+            "certificate_hash": "820b7b80605f95af0b3f5aecb690899dd8eddc26"
+          }
+        },
+        {
+          "client_id": "603137695665-n8uers128dma1cm45b6310s1seud989l.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAXl2QLAI2qL3cOttRRhBdTt9HHmGALP0w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "603137695665-n8uers128dma1cm45b6310s1seud989l.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
