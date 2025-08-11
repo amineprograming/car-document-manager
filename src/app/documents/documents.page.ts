@@ -21,6 +21,7 @@ import {
   IonFabButton,
   ToastController,
   AlertController,
+  ModalController,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import {
@@ -37,6 +38,7 @@ import {
 import { Document } from '../models/document.model';
 import { Car } from '../models/car.model';
 import { DatabaseService } from '../services/firebase-database.service';
+import { DocumentModalComponent } from './document-modal.component';
 
 @Component({
   selector: 'app-documents',
@@ -70,12 +72,13 @@ export class DocumentsPage implements OnInit {
   filteredDocuments: Document[] = [];
   cars: Car[] = [];
   searchTerm: string = '';
-  activeFilter: string = 'all';
+  activeFilter: 'all' | 'active' | 'expired' | 'expiring' = 'all';
 
   constructor(
     private databaseService: DatabaseService,
     private toastController: ToastController,
-    private alertController: AlertController
+    private alertController: AlertController,
+    private modalController: ModalController
   ) {
     addIcons({
       add,
@@ -91,8 +94,13 @@ export class DocumentsPage implements OnInit {
   }
 
   async ngOnInit() {
-    await this.loadDocuments();
     await this.loadCars();
+    await this.loadDocuments();
+  }
+
+  async ionViewWillEnter() {
+    await this.loadCars();
+    await this.loadDocuments();
   }
 
   async loadDocuments() {
@@ -121,7 +129,6 @@ export class DocumentsPage implements OnInit {
       filtered = filtered.filter(
         (doc) =>
           doc.typeDocument.toLowerCase().includes(searchLower) ||
-          doc.reference.toLowerCase().includes(searchLower) ||
           doc.matriculeCar.toLowerCase().includes(searchLower)
       );
     }
@@ -144,13 +151,13 @@ export class DocumentsPage implements OnInit {
       case 'expiring':
         filtered = filtered.filter((doc) => {
           const today = new Date();
+          const thirtyDaysFromNow = new Date();
+          thirtyDaysFromNow.setDate(today.getDate() + 30);
           const expiration =
             typeof doc.dateFin === 'string'
               ? new Date(doc.dateFin)
               : doc.dateFin;
-          const diffTime = expiration.getTime() - today.getTime();
-          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-          return diffDays <= 30 && diffDays > 0;
+          return expiration >= today && expiration <= thirtyDaysFromNow;
         });
         break;
     }
@@ -158,10 +165,11 @@ export class DocumentsPage implements OnInit {
     this.filteredDocuments = filtered;
   }
 
-  setFilter(filter: string) {
+  setFilter(filter: 'all' | 'active' | 'expired' | 'expiring') {
     this.activeFilter = filter;
     this.filterDocuments();
   }
+
   getExpirationStatus(dateFin: Date | string) {
     const today = new Date();
     const expiration =
@@ -170,11 +178,13 @@ export class DocumentsPage implements OnInit {
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
     if (diffDays < 0) {
-      return { message: 'Expiré', color: 'danger' };
+      return { color: 'danger', message: 'Expiré' };
+    } else if (diffDays <= 7) {
+      return { color: 'danger', message: `Expire dans ${diffDays} jour(s)` };
     } else if (diffDays <= 30) {
-      return { message: `Expire dans ${diffDays} jour(s)`, color: 'warning' };
+      return { color: 'warning', message: `Expire dans ${diffDays} jour(s)` };
     } else {
-      return { message: 'Actif', color: 'success' };
+      return { color: 'success', message: `Expire dans ${diffDays} jour(s)` };
     }
   }
 
@@ -203,184 +213,46 @@ export class DocumentsPage implements OnInit {
       return;
     }
 
-    // First step: Get document details including matricule selection
-    const matriculeInputs: any[] = [
-      {
-        name: 'reference',
-        type: 'text',
-        placeholder: 'Référence du document (optionnel)',
+    const modal = await this.modalController.create({
+      component: DocumentModalComponent,
+      componentProps: {
+        cars: this.cars,
+        isEdit: false,
       },
-      {
-        name: 'typeDocument',
-        type: 'text',
-        placeholder: 'Type de document *',
-      },
-      {
-        name: 'dateDebut',
-        type: 'date',
-        placeholder: 'Date de début',
-        value: new Date().toISOString().split('T')[0],
-      },
-      {
-        name: 'dateFin',
-        type: 'date',
-        placeholder: 'Date de fin *',
-      },
-    ];
-
-    // Add radio buttons for each car matricule
-    this.cars.forEach((car, index) => {
-      matriculeInputs.push({
-        name: 'matricule',
-        type: 'radio',
-        label: car.matricule,
-        value: car.matricule,
-        checked: index === 0, // Select first car by default
-      });
     });
 
-    const alert = await this.alertController.create({
-      header: 'Ajouter un Document',
-      inputs: matriculeInputs,
-      buttons: [
-        {
-          text: 'Annuler',
-          role: 'cancel',
-        },
-        {
-          text: 'Ajouter',
-          handler: async (data) => {
-            if (!data.typeDocument || !data.dateFin || !data.matricule) {
-              await this.showToast(
-                'Veuillez remplir tous les champs obligatoires',
-                'danger'
-              );
-              return false;
-            }
-
-            const document: Omit<Document, 'id'> = {
-              reference: data.reference || '',
-              typeDocument: data.typeDocument,
-              matriculeCar: data.matricule,
-              dateDebut: data.dateDebut ? new Date(data.dateDebut) : new Date(),
-              dateFin: new Date(data.dateFin),
-              documentActive: true,
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            };
-
-            const success = await this.databaseService.addDocument(document);
-            if (success) {
-              await this.showToast('Document ajouté avec succès', 'success');
-              await this.loadDocuments();
-            } else {
-              await this.showToast(
-                "Erreur lors de l'ajout du document",
-                'danger'
-              );
-            }
-            return true;
-          },
-        },
-      ],
+    modal.onDidDismiss().then((result) => {
+      if (result.data && result.data.added) {
+        this.loadDocuments();
+      }
     });
 
-    await alert.present();
+    await modal.present();
   }
 
   async editDocument(document: Document) {
-    const editInputs: any[] = [
-      {
-        name: 'reference',
-        type: 'text',
-        placeholder: 'Référence du document (optionnel)',
-        value: document.reference,
+    const modal = await this.modalController.create({
+      component: DocumentModalComponent,
+      componentProps: {
+        cars: this.cars,
+        document: document,
+        isEdit: true,
       },
-      {
-        name: 'typeDocument',
-        type: 'text',
-        placeholder: 'Type de document *',
-        value: document.typeDocument,
-      },
-      {
-        name: 'dateDebut',
-        type: 'date',
-        placeholder: 'Date de début',
-        value: this.formatDateForInput(document.dateDebut),
-      },
-      {
-        name: 'dateFin',
-        type: 'date',
-        placeholder: 'Date de fin *',
-        value: this.formatDateForInput(document.dateFin),
-      },
-    ];
-
-    // Add radio buttons for each car matricule
-    this.cars.forEach((car) => {
-      editInputs.push({
-        name: 'matricule',
-        type: 'radio',
-        label: car.matricule,
-        value: car.matricule,
-        checked: car.matricule === document.matriculeCar, // Select current car by default
-      });
     });
 
-    const alert = await this.alertController.create({
-      header: 'Modifier le Document',
-      inputs: editInputs,
-      buttons: [
-        {
-          text: 'Annuler',
-          role: 'cancel',
-        },
-        {
-          text: 'Modifier',
-          handler: async (data) => {
-            if (!data.typeDocument || !data.dateFin || !data.matricule) {
-              await this.showToast(
-                'Veuillez remplir tous les champs obligatoires',
-                'danger'
-              );
-              return false;
-            }
-
-            const updatedDocument: Document = {
-              ...document,
-              reference: data.reference || '',
-              typeDocument: data.typeDocument,
-              matriculeCar: data.matricule,
-              dateDebut: new Date(data.dateDebut),
-              dateFin: new Date(data.dateFin),
-              updatedAt: new Date(),
-            };
-
-            const success = await this.databaseService.updateDocument(
-              updatedDocument
-            );
-            if (success) {
-              await this.showToast('Document modifié avec succès', 'success');
-              await this.loadDocuments();
-            } else {
-              await this.showToast(
-                'Erreur lors de la modification du document',
-                'danger'
-              );
-            }
-            return true;
-          },
-        },
-      ],
+    modal.onDidDismiss().then((result) => {
+      if (result.data && result.data.updated) {
+        this.loadDocuments();
+      }
     });
 
-    await alert.present();
+    await modal.present();
   }
 
   async deleteDocument(document: Document) {
     const alert = await this.alertController.create({
       header: 'Supprimer le Document',
-      message: `Êtes-vous sûr de vouloir supprimer le document "${document.reference}" ?`,
+      message: `Êtes-vous sûr de vouloir supprimer le document "${document.typeDocument}" pour le véhicule ${document.matriculeCar} ?`,
       buttons: [
         {
           text: 'Annuler',
@@ -429,12 +301,13 @@ export class DocumentsPage implements OnInit {
   }
 
   private formatDateForInput(date: Date | string): string {
-    try {
-      const dateObj = typeof date === 'string' ? new Date(date) : date;
-      return dateObj.toISOString().split('T')[0];
-    } catch (error) {
-      console.error('Error formatting date:', error);
-      return new Date().toISOString().split('T')[0];
-    }
+    if (!date) return '';
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+
+    const year = dateObj.getFullYear();
+    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const day = String(dateObj.getDate()).padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
   }
 }

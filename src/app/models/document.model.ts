@@ -1,6 +1,5 @@
 export interface Document {
   id?: string;
-  reference: string;
   typeDocument: string;
   matriculeCar: string;
   dateDebut: Date;
@@ -12,8 +11,6 @@ export interface Document {
 
 export enum DocumentType {
   ASSURANCE = 'Assurance',
-  CARTE_GRISE = 'Carte Grise',
-  CONTROLE_TECHNIQUE = 'Contrôle Technique',
   VIGNETTE = 'Vignette',
-  AUTRE = 'Autre',
+  CARTE_GRISE = 'Carte Grise',
 }

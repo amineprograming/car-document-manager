@@ -193,7 +193,6 @@ export class DatabaseService {
     try {
       const documentDoc = doc(this.firestore, 'documents', document.id);
       const updateData = {
-        reference: document.reference,
         typeDocument: document.typeDocument,
         matriculeCar: document.matriculeCar,
         dateDebut: Timestamp.fromDate(document.dateDebut),
@@ -431,8 +430,7 @@ export class DatabaseService {
         .filter(
           (doc: Document) =>
             doc.matriculeCar.toLowerCase().includes(searchTermLower) ||
-            doc.typeDocument.toLowerCase().includes(searchTermLower) ||
-            doc.reference.toLowerCase().includes(searchTermLower)
+            doc.typeDocument.toLowerCase().includes(searchTermLower)
         )
         .sort(
           (a: Document, b: Document) =>

@@ -202,7 +202,7 @@ export class PushNotificationService {
       });
 
       console.log(
-        `Scheduled notification ${notificationId} for document ${document.reference} at ${hour}:00`
+        `Scheduled notification ${notificationId} for document ${document.typeDocument} (${document.matriculeCar}) at ${hour}:00`
       );
     } catch (error) {
       console.error('Error scheduling notification:', error);
@@ -218,14 +218,13 @@ export class PushNotificationService {
   ): string {
     const vehicleInfo = document.matriculeCar;
     const docType = document.typeDocument;
-    const reference = document.reference ? ` (${document.reference})` : '';
 
     if (daysUntilExpiration === 1) {
-      return `${docType}${reference} pour ${vehicleInfo} expire demain !`;
+      return `${docType} pour ${vehicleInfo} expire demain !`;
     } else if (daysUntilExpiration <= 7) {
-      return `${docType}${reference} pour ${vehicleInfo} expire dans ${daysUntilExpiration} jours`;
+      return `${docType} pour ${vehicleInfo} expire dans ${daysUntilExpiration} jours`;
     } else {
-      return `${docType}${reference} pour ${vehicleInfo} expire dans ${daysUntilExpiration} jours`;
+      return `${docType} pour ${vehicleInfo} expire dans ${daysUntilExpiration} jours`;
     }
   }
 
