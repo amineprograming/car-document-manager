@@ -22,10 +22,41 @@ export class AuthService {
   private authInitialized = new BehaviorSubject<boolean>(false);
   public currentUser$ = this.currentUserSubject.asObservable();
   public authInitialized$ = this.authInitialized.asObservable();
+  
+  private readonly USER_STORAGE_KEY = 'currentUser';
 
   constructor() {
     this.initializeGoogleAuth();
     this.initializeAuth();
+  }
+
+  /**
+   * Set current user and store in local storage
+   */
+  private setCurrentUser(user: User | null): void {
+    this.currentUserSubject.next(user);
+    if (user) {
+      localStorage.setItem(this.USER_STORAGE_KEY, JSON.stringify(user));
+    } else {
+      localStorage.removeItem(this.USER_STORAGE_KEY);
+    }
+  }
+
+  /**
+   * Load stored user from local storage (for faster initial load)
+   */
+  private loadStoredUser(): void {
+    try {
+      const storedUser = localStorage.getItem(this.USER_STORAGE_KEY);
+      if (storedUser) {
+        const user: User = JSON.parse(storedUser);
+        this.currentUserSubject.next(user);
+        console.log('Loaded stored user:', user.email);
+      }
+    } catch (error) {
+      console.error('Error loading stored user:', error);
+      localStorage.removeItem(this.USER_STORAGE_KEY);
+    }
   }
 
   private async initializeGoogleAuth() {
@@ -49,6 +80,9 @@ export class AuthService {
 
   private initializeAuth() {
     try {
+      // Check for stored user data first (for faster initial load)
+      this.loadStoredUser();
+
       // Firebase v9+ has persistence enabled by default for web
       // Listen to Firebase auth state changes
       onAuthStateChanged(this.auth, (firebaseUser: FirebaseUser | null) => {
@@ -59,10 +93,10 @@ export class AuthService {
             displayName: firebaseUser.displayName || '',
             photoURL: firebaseUser.photoURL || '',
           };
-          this.currentUserSubject.next(user);
+          this.setCurrentUser(user);
           console.log('User authenticated:', user.email);
         } else {
-          this.currentUserSubject.next(null);
+          this.setCurrentUser(null);
           console.log('User not authenticated');
         }
 

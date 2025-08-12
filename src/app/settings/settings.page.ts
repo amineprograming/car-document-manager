@@ -68,12 +68,16 @@ export class SettingsPage implements OnInit {
   config: AppConfig = {
     notificationDays: 30,
     notificationHours: [9, 18],
+    notificationIntervals: [7, 3, 1, 0],
     enableNotifications: true,
   };
 
   showHourSelector: boolean = false;
   selectedHour: number | null = null;
   availableHours: number[] = [];
+
+  showIntervalSelector: boolean = false;
+  selectedInterval: number | null = null;
 
   constructor(
     private configService: ConfigService,
@@ -257,6 +261,88 @@ export class SettingsPage implements OnInit {
     return this.config.notificationHours
       .map((hour) => this.formatHour(hour))
       .join(', ');
+  }
+
+  /**
+   * Retourne le texte des intervalles de notification
+   */
+  getNotificationIntervalsText(): string {
+    if (this.config.notificationIntervals.length === 0) {
+      return 'Aucun';
+    }
+    return this.config.notificationIntervals
+      .sort((a, b) => b - a)
+      .map((interval) => (interval === 0 ? 'Jour J' : interval + 'j avant'))
+      .join(', ');
+  }
+
+  /**
+   * Affiche le sélecteur d'intervalle
+   */
+  showIntervalPicker() {
+    this.showIntervalSelector = true;
+    this.selectedInterval = null;
+  }
+
+  /**
+   * Ajoute un intervalle de notification
+   */
+  async addNotificationInterval() {
+    if (
+      this.selectedInterval !== null &&
+      this.selectedInterval >= 0 &&
+      !this.config.notificationIntervals.includes(this.selectedInterval)
+    ) {
+      this.config.notificationIntervals.push(this.selectedInterval);
+      this.config.notificationIntervals.sort((a, b) => b - a); // Tri décroissant
+
+      try {
+        const updated = await this.configService.saveConfig(this.config);
+        if (updated) {
+          this.showIntervalSelector = false;
+          this.selectedInterval = null;
+          await this.pushNotificationService.updateNotifications();
+          this.showToast('Intervalle de notification ajouté');
+        } else {
+          this.showToast("Erreur lors de l'ajout de l'intervalle", 'danger');
+        }
+      } catch (error) {
+        console.error('Error adding notification interval:', error);
+        this.showToast("Erreur lors de l'ajout de l'intervalle", 'danger');
+      }
+    } else if (
+      this.selectedInterval !== null &&
+      this.config.notificationIntervals.includes(this.selectedInterval)
+    ) {
+      this.showToast('Cet intervalle existe déjà', 'warning');
+    }
+  }
+
+  /**
+   * Supprime un intervalle de notification
+   */
+  async removeNotificationInterval(index: number) {
+    if (this.config.notificationIntervals.length > 1) {
+      this.config.notificationIntervals.splice(index, 1);
+
+      try {
+        const updated = await this.configService.saveConfig(this.config);
+        if (updated) {
+          await this.pushNotificationService.updateNotifications();
+          this.showToast('Intervalle de notification supprimé');
+        } else {
+          this.showToast('Erreur lors de la suppression', 'danger');
+        }
+      } catch (error) {
+        console.error('Error removing notification interval:', error);
+        this.showToast('Erreur lors de la suppression', 'danger');
+      }
+    } else {
+      this.showToast(
+        'Au moins un intervalle de notification est requis',
+        'warning'
+      );
+    }
   }
 
   /**

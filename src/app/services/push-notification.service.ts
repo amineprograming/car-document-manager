@@ -109,6 +109,11 @@ export class PushNotificationService {
     document: Document,
     config: AppConfig
   ): boolean {
+    // Only schedule notifications for active documents
+    if (!document.documentActive) {
+      return false;
+    }
+
     const now = new Date();
     const expirationDate =
       typeof document.dateFin === 'string'
@@ -135,33 +140,58 @@ export class PushNotificationService {
         ? new Date(document.dateFin)
         : document.dateFin;
 
-    const diffTime = expirationDate.getTime() - Date.now();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const now = new Date();
+    const diffTime = expirationDate.getTime() - now.getTime();
+    const totalDaysUntilExpiration = Math.ceil(
+      diffTime / (1000 * 60 * 60 * 24)
+    );
 
-    // Schedule for each configured hour
-    for (const hour of config.notificationHours) {
-      await this.scheduleNotificationForHour(document, diffDays, hour);
+    // Use notification intervals from config instead of hardcoded values
+    const notificationIntervals = config.notificationIntervals || [7, 3, 1, 0];
+
+    // Schedule notifications for each interval and each configured hour
+    for (const interval of notificationIntervals) {
+      if (totalDaysUntilExpiration >= interval) {
+        // Calculate the date when notification should be sent
+        const notificationDate = new Date(expirationDate);
+        notificationDate.setDate(notificationDate.getDate() - interval);
+
+        // Only schedule if notification date is in the future
+        if (notificationDate.getTime() > now.getTime()) {
+          const daysUntilExpiration =
+            interval === 0 ? totalDaysUntilExpiration : interval;
+          for (const hour of config.notificationHours) {
+            await this.scheduleNotificationForDateTime(
+              document,
+              notificationDate,
+              hour,
+              daysUntilExpiration
+            );
+          }
+        }
+      }
     }
   }
 
   /**
-   * Schedule a notification for a specific hour
+   * Schedule a notification for a specific date and hour
    */
-  private async scheduleNotificationForHour(
+  private async scheduleNotificationForDateTime(
     document: Document,
-    daysUntilExpiration: number,
-    hour: number
+    notificationDate: Date,
+    hour: number,
+    daysUntilExpiration: number
   ): Promise<void> {
     try {
       const notificationId = this.generateNotificationId();
 
-      // Calculate when to show the notification (today at the specified hour)
-      const scheduledDate = new Date();
+      // Set the specific hour for notification
+      const scheduledDate = new Date(notificationDate);
       scheduledDate.setHours(hour, 0, 0, 0);
 
-      // If the time has already passed today, schedule for tomorrow
+      // Only schedule if the time is in the future
       if (scheduledDate.getTime() <= Date.now()) {
-        scheduledDate.setDate(scheduledDate.getDate() + 1);
+        return; // Skip this notification as it's in the past
       }
 
       const notificationOptions: ScheduleOptions = {
@@ -175,8 +205,6 @@ export class PushNotificationService {
             ),
             schedule: {
               at: scheduledDate,
-              repeats: true,
-              every: 'day',
             },
             sound: 'default',
             attachments: [],
@@ -186,6 +214,7 @@ export class PushNotificationService {
               documentType: document.typeDocument,
               matricule: document.matriculeCar,
               daysUntilExpiration: daysUntilExpiration,
+              scheduledFor: scheduledDate.toISOString(),
             },
           },
         ],
@@ -202,7 +231,11 @@ export class PushNotificationService {
       });
 
       console.log(
-        `Scheduled notification ${notificationId} for document ${document.typeDocument} (${document.matriculeCar}) at ${hour}:00`
+        `Scheduled notification ${notificationId} for document ${
+          document.typeDocument
+        } (${
+          document.matriculeCar
+        }) on ${scheduledDate.toLocaleDateString()} at ${hour}:00 (${daysUntilExpiration} days until expiration)`
       );
     } catch (error) {
       console.error('Error scheduling notification:', error);

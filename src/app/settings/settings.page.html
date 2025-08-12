@@ -96,6 +96,55 @@
           </ion-select-option>
         </ion-select>
       </ion-item>
+
+      <!-- Intervalles de notifications -->
+      <ion-item [class.item-disabled]="!config.enableNotifications">
+        <ion-label position="stacked">
+          <h3>Intervalles de notifications</h3>
+          <p>
+            Jours avant expiration pour recevoir des notifications (ex: 7, 3, 1,
+            0)
+          </p>
+        </ion-label>
+      </ion-item>
+
+      <!-- Liste des intervalles sélectionnés -->
+      <div class="notification-intervals" *ngIf="config.enableNotifications">
+        <ion-chip
+          *ngFor="let interval of config.notificationIntervals; let i = index"
+          color="secondary"
+          (click)="removeNotificationInterval(i)"
+        >
+          <ion-label
+            >{{ interval === 0 ? 'Jour J' : interval + 'j avant' }}</ion-label
+          >
+          <ion-icon name="close-circle"></ion-icon>
+        </ion-chip>
+
+        <ion-button
+          fill="outline"
+          size="small"
+          (click)="showIntervalPicker()"
+          [disabled]="config.notificationIntervals.length >= 10"
+        >
+          <ion-icon name="add" slot="icon-only"></ion-icon>
+        </ion-button>
+      </div>
+
+      <!-- Sélecteur d'intervalle -->
+      <ion-item *ngIf="showIntervalSelector && config.enableNotifications">
+        <ion-label position="stacked"
+          >Ajouter un intervalle (jours avant expiration)</ion-label
+        >
+        <ion-input
+          [(ngModel)]="selectedInterval"
+          type="number"
+          min="0"
+          max="365"
+          placeholder="Ex: 7 pour 7 jours avant"
+          (ionBlur)="addNotificationInterval()"
+        ></ion-input>
+      </ion-item>
     </ion-card-content>
   </ion-card>
 
@@ -135,7 +184,8 @@
             Notifications: {{ config.enableNotifications ? 'Activées' :
             'Désactivées' }}<br />
             Jours avant expiration: {{ config.notificationDays }}<br />
-            Heures: {{ getNotificationHoursText() }}
+            Heures: {{ getNotificationHoursText() }}<br />
+            Intervalles: {{ getNotificationIntervalsText() }}
           </p>
         </ion-label>
       </ion-item>

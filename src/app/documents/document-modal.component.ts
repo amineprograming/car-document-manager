@@ -15,6 +15,7 @@ import {
   IonSelect,
   IonSelectOption,
   IonInput,
+  IonToggle,
   ModalController,
   ToastController,
 } from '@ionic/angular/standalone';
@@ -87,6 +88,20 @@ import { DatabaseService } from '../services/firebase-database.service';
           >
           </ion-input>
         </ion-item>
+
+        <ion-item>
+          <ion-toggle
+            [(ngModel)]="documentData.documentActive"
+            slot="start"
+          ></ion-toggle>
+          <ion-label>
+            <h3>Document actif</h3>
+            <p>
+              Les notifications seront uniquement envoyées pour les documents
+              actifs
+            </p>
+          </ion-label>
+        </ion-item>
       </ion-list>
 
       <div style="padding: 20px;">
@@ -114,6 +129,7 @@ import { DatabaseService } from '../services/firebase-database.service';
     IonSelect,
     IonSelectOption,
     IonInput,
+    IonToggle,
   ],
 })
 export class DocumentModalComponent implements OnInit {
@@ -126,6 +142,7 @@ export class DocumentModalComponent implements OnInit {
     matricule: '',
     dateDebut: '',
     dateFin: '',
+    documentActive: true,
   };
 
   constructor(
@@ -143,6 +160,7 @@ export class DocumentModalComponent implements OnInit {
         matricule: this.document.matriculeCar,
         dateDebut: this.formatDateForInput(this.document.dateDebut),
         dateFin: this.formatDateForInput(this.document.dateFin),
+        documentActive: this.document.documentActive,
       };
     } else {
       // Set default start date to today
@@ -176,6 +194,7 @@ export class DocumentModalComponent implements OnInit {
           matriculeCar: this.documentData.matricule,
           dateDebut: new Date(this.documentData.dateDebut),
           dateFin: new Date(this.documentData.dateFin),
+          documentActive: this.documentData.documentActive,
           updatedAt: new Date(),
         };
 
@@ -197,7 +216,7 @@ export class DocumentModalComponent implements OnInit {
             ? new Date(this.documentData.dateDebut)
             : new Date(),
           dateFin: new Date(this.documentData.dateFin),
-          documentActive: true,
+          documentActive: this.documentData.documentActive,
           createdAt: new Date(),
           updatedAt: new Date(),
         };

@@ -1,7 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { Subscription } from 'rxjs';
 import {
   IonContent,
   IonButton,
@@ -46,10 +47,11 @@ import { GOOGLE_AUTH_CONFIG } from '../config/google-auth.config';
     FormsModule,
   ],
 })
-export class AuthPage implements OnInit {
+export class AuthPage implements OnInit, OnDestroy {
   loading = false;
   debugInfo: any = null;
   errorMessage: string = '';
+  private authSubscription?: Subscription;
 
   constructor(
     private authService: AuthService,
@@ -67,10 +69,28 @@ export class AuthPage implements OnInit {
     });
   }
 
-  ngOnInit() {
+  async ngOnInit() {
+    // Wait for auth initialization before checking authentication state
+    await this.authService.waitForAuthInitialization();
+    
     // Check if user is already authenticated
     if (this.authService.isAuthenticated()) {
       this.router.navigate(['/tabs/dashboard']);
+      return;
+    }
+
+    // Subscribe to auth state changes for automatic redirect
+    this.authSubscription = this.authService.currentUser$.subscribe(user => {
+      if (user && !this.loading) {
+        // User got authenticated, redirect to dashboard
+        this.router.navigate(['/tabs/dashboard']);
+      }
+    });
+  }
+
+  ngOnDestroy() {
+    if (this.authSubscription) {
+      this.authSubscription.unsubscribe();
     }
   }
 

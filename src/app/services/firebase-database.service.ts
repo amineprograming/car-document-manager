@@ -333,6 +333,7 @@ export class DatabaseService {
         return {
           notificationDays: data['notificationDays'] || 30,
           notificationHours: data['notificationHours'] || [9, 18],
+          notificationIntervals: data['notificationIntervals'] || [7, 3, 1, 0],
           enableNotifications:
             data['enableNotifications'] !== undefined
               ? data['enableNotifications']
@@ -344,6 +345,7 @@ export class DatabaseService {
       const defaultSettings: AppConfig = {
         notificationDays: 30,
         notificationHours: [9, 18],
+        notificationIntervals: [7, 3, 1, 0],
         enableNotifications: true,
       };
       await addDoc(settingsCollection, defaultSettings);
@@ -354,6 +356,7 @@ export class DatabaseService {
       return {
         notificationDays: 30,
         notificationHours: [9, 18],
+        notificationIntervals: [7, 3, 1, 0],
         enableNotifications: true,
       };
     }
