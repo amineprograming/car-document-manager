@@ -72,7 +72,7 @@ export class AuthPage implements OnInit, OnDestroy {
   async ngOnInit() {
     // Wait for auth initialization before checking authentication state
     await this.authService.waitForAuthInitialization();
-    
+
     // Check if user is already authenticated
     if (this.authService.isAuthenticated()) {
       this.router.navigate(['/tabs/dashboard']);
@@ -80,7 +80,7 @@ export class AuthPage implements OnInit, OnDestroy {
     }
 
     // Subscribe to auth state changes for automatic redirect
-    this.authSubscription = this.authService.currentUser$.subscribe(user => {
+    this.authSubscription = this.authService.currentUser$.subscribe((user) => {
       if (user && !this.loading) {
         // User got authenticated, redirect to dashboard
         this.router.navigate(['/tabs/dashboard']);

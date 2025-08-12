@@ -1,176 +1,288 @@
 <ion-header [translucent]="true">
-  <ion-toolbar color="primary">
-    <ion-title> Tableau de Bord </ion-title>
+  <ion-toolbar color="primary" class="header-toolbar">
+    <ion-title class="header-title">
+      <ion-icon name="speedometer-outline" class="title-icon"></ion-icon>
+      Tableau de Bord
+    </ion-title>
     <ion-buttons slot="end">
-      <ion-button (click)="refresh()">
-        <ion-icon name="refresh"></ion-icon>
+      <ion-button fill="clear" (click)="refresh()" class="header-button">
+        <ion-icon name="refresh-outline"></ion-icon>
       </ion-button>
-      <ion-button (click)="logout()">
-        <ion-icon name="log-out"></ion-icon>
+      <ion-button fill="clear" (click)="logout()" class="header-button">
+        <ion-icon name="log-out-outline"></ion-icon>
       </ion-button>
     </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true">
+<ion-content [fullscreen]="true" class="dashboard-content">
   <ion-header collapse="condense">
     <ion-toolbar>
       <ion-title size="large">Tableau de Bord</ion-title>
     </ion-toolbar>
   </ion-header>
 
-  <div class="dashboard-container">
-    <!-- Welcome Section -->
-    <div class="welcome-section" *ngIf="user">
-      <ion-avatar>
-        <img
-          [src]="user.photoURL || 'assets/default-avatar.png'"
-          [alt]="user.displayName"
-        />
-      </ion-avatar>
-      <div class="welcome-text">
-        <h2>Bonjour, {{user.displayName || 'Utilisateur'}}</h2>
-        <p>Voici un aperçu de vos documents</p>
+  <div class="dashboard-container animate-fade-in">
+    <!-- Enhanced Welcome Section -->
+    <div class="welcome-section glass-card animate-slide-in-right" *ngIf="user">
+      <div class="welcome-avatar">
+        <ion-avatar class="user-avatar">
+          <img
+            [src]="user.photoURL || 'assets/default-avatar.png'"
+            [alt]="user.displayName"
+          />
+        </ion-avatar>
+        <div class="status-indicator active"></div>
+      </div>
+      <div class="welcome-content">
+        <h1 class="welcome-title">
+          Bonjour, {{user.displayName || 'Utilisateur'}} 👋
+        </h1>
+        <p class="welcome-subtitle">
+          Voici un aperçu de vos documents automobiles
+        </p>
+        <div class="quick-stats">
+          <span class="stat-pill">
+            <ion-icon name="car-sport"></ion-icon>
+            {{stats.totalCars}} véhicules
+          </span>
+          <span class="stat-pill">
+            <ion-icon name="document-text"></ion-icon>
+            {{stats.totalDocuments}} documents
+          </span>
+        </div>
       </div>
     </div>
 
-    <!-- Statistics Cards -->
-    <div class="stats-grid">
-      <ion-card class="stat-card cars">
-        <ion-card-content>
-          <div class="stat-icon">
-            <ion-icon name="car"></ion-icon>
-          </div>
-          <div class="stat-info">
-            <h3>{{stats.totalCars}}</h3>
-            <p>Véhicules</p>
-          </div>
-        </ion-card-content>
-      </ion-card>
+    <!-- Enhanced Statistics Cards -->
+    <div class="stats-section">
+      <h2 class="section-title">
+        <ion-icon name="analytics-outline"></ion-icon>
+        Statistiques
+      </h2>
+      <div class="stats-grid animate-stagger">
+        <ion-card class="stat-card cars gradient-primary" button>
+          <ion-card-content>
+            <div class="card-header">
+              <div class="stat-icon-wrapper">
+                <ion-icon name="car-sport"></ion-icon>
+              </div>
+              <ion-badge color="light">{{stats.totalCars}}</ion-badge>
+            </div>
+            <div class="stat-info">
+              <h3>Véhicules</h3>
+              <p>Total enregistrés</p>
+            </div>
+            <div class="card-footer">
+              <ion-icon name="chevron-forward"></ion-icon>
+            </div>
+          </ion-card-content>
+        </ion-card>
 
-      <ion-card class="stat-card documents">
-        <ion-card-content>
-          <div class="stat-icon">
-            <ion-icon name="document-text"></ion-icon>
-          </div>
-          <div class="stat-info">
-            <h3>{{stats.activeDocuments}}</h3>
-            <p>Documents Actifs</p>
-          </div>
-        </ion-card-content>
-      </ion-card>
+        <ion-card class="stat-card documents gradient-success" button>
+          <ion-card-content>
+            <div class="card-header">
+              <div class="stat-icon-wrapper">
+                <ion-icon name="document-text"></ion-icon>
+              </div>
+              <ion-badge color="light">{{stats.activeDocuments}}</ion-badge>
+            </div>
+            <div class="stat-info">
+              <h3>Documents</h3>
+              <p>Total actifs</p>
+            </div>
+            <div class="card-footer">
+              <ion-icon name="chevron-forward"></ion-icon>
+            </div>
+          </ion-card-content>
+        </ion-card>
 
-      <ion-card class="stat-card expired">
-        <ion-card-content>
-          <div class="stat-icon">
-            <ion-icon name="alert-circle"></ion-icon>
-          </div>
-          <div class="stat-info">
-            <h3>{{stats.expiredDocuments}}</h3>
-            <p>Expirés</p>
-          </div>
-        </ion-card-content>
-      </ion-card>
+        <ion-card class="stat-card expired gradient-danger" button>
+          <ion-card-content>
+            <div class="card-header">
+              <div class="stat-icon-wrapper">
+                <ion-icon name="alert-circle"></ion-icon>
+              </div>
+              <ion-badge color="light">{{stats.expiredDocuments}}</ion-badge>
+            </div>
+            <div class="stat-info">
+              <h3>Expirés</h3>
+              <p>À renouveler</p>
+            </div>
+            <div class="card-footer">
+              <ion-icon name="chevron-forward"></ion-icon>
+            </div>
+          </ion-card-content>
+        </ion-card>
 
-      <ion-card class="stat-card expiring">
+        <ion-card class="stat-card expiring gradient-warning" button>
+          <ion-card-content>
+            <div class="card-header">
+              <div class="stat-icon-wrapper">
+                <ion-icon name="warning"></ion-icon>
+              </div>
+              <ion-badge color="light">{{stats.expiringInSevenDays}}</ion-badge>
+            </div>
+            <div class="stat-info">
+              <h3>Bientôt</h3>
+              <p>7 jours restants</p>
+            </div>
+            <div class="card-footer">
+              <ion-icon name="chevron-forward"></ion-icon>
+            </div>
+          </ion-card-content>
+        </ion-card>
+      </div>
+    </div>
+
+    <!-- Enhanced Recent Expiring Documents -->
+    <div
+      class="expiring-section"
+      *ngIf="stats.soonToExpireDocuments.length > 0"
+    >
+      <h2 class="section-title">
+        <ion-icon name="time-outline"></ion-icon>
+        Documents à surveiller
+      </h2>
+      <ion-card class="expiring-card">
         <ion-card-content>
-          <div class="stat-icon">
-            <ion-icon name="warning"></ion-icon>
-          </div>
-          <div class="stat-info">
-            <h3>{{stats.expiringInSevenDays}}</h3>
-            <p>Expirent Bientôt</p>
-          </div>
+          <ion-list class="expiring-list animate-stagger">
+            <ion-item
+              *ngFor="let document of stats.soonToExpireDocuments"
+              class="expiring-item item-interactive"
+              lines="none"
+            >
+              <div slot="start" class="document-icon">
+                <div
+                  class="icon-wrapper"
+                  [class]="getExpirationStatus(document.dateFin).color"
+                >
+                  <ion-icon
+                    [name]="getDocumentIcon(document.typeDocument)"
+                  ></ion-icon>
+                </div>
+              </div>
+              <ion-label>
+                <h3 class="document-title">{{document.typeDocument}}</h3>
+                <p class="document-car">
+                  <ion-icon name="car-sport-outline"></ion-icon>
+                  {{document.matriculeCar}}
+                </p>
+                <div class="document-status">
+                  <span
+                    class="status-indicator"
+                    [class]="getExpirationStatus(document.dateFin).color"
+                  ></span>
+                  {{getExpirationStatus(document.dateFin).message}}
+                </div>
+              </ion-label>
+              <div slot="end" class="expiry-info">
+                <ion-chip
+                  [color]="getExpirationStatus(document.dateFin).color"
+                  class="days-chip"
+                >
+                  {{getDaysUntilExpiration(document.dateFin)}}j
+                </ion-chip>
+                <ion-icon name="chevron-forward" color="medium"></ion-icon>
+              </div>
+            </ion-item>
+          </ion-list>
         </ion-card-content>
       </ion-card>
     </div>
 
-    <!-- Recent Expiring Documents -->
-    <ion-card *ngIf="stats.soonToExpireDocuments.length > 0">
-      <ion-card-header>
-        <ion-card-title>
-          <ion-icon name="time" color="warning"></ion-icon>
-          Documents à Expiration Proche
-        </ion-card-title>
-      </ion-card-header>
-      <ion-card-content>
-        <ion-list>
-          <ion-item
-            *ngFor="let document of stats.soonToExpireDocuments"
-            lines="full"
-          >
-            <div slot="start" class="document-type-icon">
-              <ion-icon
-                [name]="getDocumentIcon(document.typeDocument)"
-                [color]="getExpirationStatus(document.dateFin).color"
-              ></ion-icon>
+    <!-- Enhanced Quick Actions -->
+    <div class="actions-section">
+      <h2 class="section-title">
+        <ion-icon name="rocket-outline"></ion-icon>
+        Actions rapides
+      </h2>
+      <div class="quick-actions animate-stagger">
+        <ion-card
+          class="action-card cars-action"
+          button
+          routerLink="/tabs/cars"
+        >
+          <ion-card-content>
+            <div class="action-icon">
+              <ion-icon name="car-sport"></ion-icon>
             </div>
-            <ion-label>
-              <h3>{{document.typeDocument}}</h3>
-              <p>{{document.matriculeCar}}</p>
-              <ion-note [color]="getExpirationStatus(document.dateFin).color">
-                {{getExpirationStatus(document.dateFin).message}}
-              </ion-note>
-            </ion-label>
-            <ion-chip
-              [color]="getExpirationStatus(document.dateFin).color"
-              slot="end"
-            >
-              {{getDaysUntilExpiration(document.dateFin)}} j
-            </ion-chip>
-          </ion-item>
-        </ion-list>
-      </ion-card-content>
-    </ion-card>
+            <div class="action-content">
+              <h3>Véhicules</h3>
+              <p>Gérer votre flotte</p>
+            </div>
+            <ion-icon name="chevron-forward" class="action-arrow"></ion-icon>
+          </ion-card-content>
+        </ion-card>
 
-    <!-- Quick Actions -->
-    <ion-card>
-      <ion-card-header>
-        <ion-card-title>
-          <ion-icon name="flash" color="primary"></ion-icon>
-          Actions Rapides
-        </ion-card-title>
-      </ion-card-header>
-      <ion-card-content>
-        <div class="quick-actions">
-          <ion-button expand="block" fill="outline" routerLink="/tabs/cars">
-            <ion-icon name="car" slot="start"></ion-icon>
-            Gérer les Véhicules
-          </ion-button>
-          <ion-button
-            expand="block"
-            fill="outline"
-            routerLink="/tabs/documents"
-          >
-            <ion-icon name="document-text" slot="start"></ion-icon>
-            Gérer les Documents
-          </ion-button>
-        </div>
-      </ion-card-content>
-    </ion-card>
+        <ion-card
+          class="action-card documents-action"
+          button
+          routerLink="/tabs/documents"
+        >
+          <ion-card-content>
+            <div class="action-icon">
+              <ion-icon name="document-text"></ion-icon>
+            </div>
+            <div class="action-content">
+              <h3>Documents</h3>
+              <p>Suivre les échéances</p>
+            </div>
+            <ion-icon name="chevron-forward" class="action-arrow"></ion-icon>
+          </ion-card-content>
+        </ion-card>
+
+        <ion-card
+          class="action-card settings-action"
+          button
+          routerLink="/tabs/settings"
+        >
+          <ion-card-content>
+            <div class="action-icon">
+              <ion-icon name="settings"></ion-icon>
+            </div>
+            <div class="action-content">
+              <h3>Paramètres</h3>
+              <p>Configurer l'app</p>
+            </div>
+            <ion-icon name="chevron-forward" class="action-arrow"></ion-icon>
+          </ion-card-content>
+        </ion-card>
+      </div>
+    </div>
 
     <!-- Empty State -->
     <div class="empty-state" *ngIf="stats.totalCars === 0">
-      <ion-icon name="car-sport" color="medium"></ion-icon>
-      <h3>Aucun véhicule enregistré</h3>
-      <p>Commencez par ajouter votre premier véhicule</p>
-      <ion-button routerLink="/tabs/cars" color="primary">
-        <ion-icon name="add" slot="start"></ion-icon>
-        Ajouter un Véhicule
-      </ion-button>
+      <div class="empty-content">
+        <ion-icon name="car-sport-outline" class="empty-icon"></ion-icon>
+        <h2>Aucun véhicule enregistré</h2>
+        <p>
+          Commencez par ajouter votre premier véhicule pour gérer vos documents
+          automobiles
+        </p>
+        <ion-button
+          expand="block"
+          color="primary"
+          routerLink="/tabs/cars"
+          class="button-large"
+        >
+          <ion-icon name="add" slot="start"></ion-icon>
+          Ajouter un véhicule
+        </ion-button>
+      </div>
     </div>
   </div>
 
-  <!-- Floating Action Button -->
-  <ion-fab vertical="bottom" horizontal="end" slot="fixed">
-    <ion-fab-button color="primary">
+  <!-- Enhanced Floating Action Button -->
+  <ion-fab vertical="bottom" horizontal="end" slot="fixed" class="enhanced-fab">
+    <ion-fab-button color="primary" class="main-fab">
       <ion-icon name="add"></ion-icon>
     </ion-fab-button>
     <ion-fab-list side="top">
-      <ion-fab-button routerLink="/tabs/cars" color="secondary">
-        <ion-icon name="car"></ion-icon>
+      <ion-fab-button color="car-blue" routerLink="/tabs/cars">
+        <ion-icon name="car-sport"></ion-icon>
       </ion-fab-button>
-      <ion-fab-button routerLink="/tabs/documents" color="tertiary">
+      <ion-fab-button color="car-green" routerLink="/tabs/documents">
         <ion-icon name="document-text"></ion-icon>
       </ion-fab-button>
     </ion-fab-list>

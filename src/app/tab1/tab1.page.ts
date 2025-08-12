@@ -23,6 +23,7 @@ import {
   IonFab,
   IonFabButton,
   IonFabList,
+  IonBadge,
   AlertController,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
@@ -66,17 +67,15 @@ import { User } from '../models/user.model';
     IonIcon,
     IonCard,
     IonCardContent,
-    IonCardHeader,
-    IonCardTitle,
     IonList,
     IonItem,
     IonLabel,
-    IonNote,
     IonChip,
     IonAvatar,
     IonFab,
     IonFabButton,
     IonFabList,
+    IonBadge,
     CommonModule,
   ],
 })

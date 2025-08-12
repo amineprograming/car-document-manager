@@ -22,7 +22,7 @@ export class AuthService {
   private authInitialized = new BehaviorSubject<boolean>(false);
   public currentUser$ = this.currentUserSubject.asObservable();
   public authInitialized$ = this.authInitialized.asObservable();
-  
+
   private readonly USER_STORAGE_KEY = 'currentUser';
 
   constructor() {
