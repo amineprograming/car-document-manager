@@ -12,16 +12,13 @@ import {
   IonIcon,
   IonSearchbar,
   IonCard,
-  IonCardHeader,
-  IonCardTitle,
-  IonCardSubtitle,
   IonCardContent,
-  IonChip,
-  IonLabel,
   IonFab,
   IonFabButton,
   IonItem,
   IonInput,
+  IonChip,
+  IonLabel,
   ModalController,
   AlertController,
   ToastController,
@@ -36,11 +33,14 @@ import {
   documentText,
   carSport,
   close,
+  chevronForward,
+  bicycle,
 } from 'ionicons/icons';
 import { DatabaseService } from '../services/firebase-database.service';
 import { AuthService } from '../services/auth.service';
 import { Car } from '../models/car.model';
 import { Document } from '../models/document.model';
+import { CarModalComponent } from './car-modal.component';
 
 @Component({
   selector: 'app-cars',
@@ -57,14 +57,11 @@ import { Document } from '../models/document.model';
     IonIcon,
     IonSearchbar,
     IonCard,
-    IonCardHeader,
-    IonCardTitle,
-    IonCardSubtitle,
     IonCardContent,
-    IonChip,
-    IonLabel,
     IonFab,
     IonFabButton,
+    IonChip,
+    IonLabel,
     CommonModule,
     FormsModule,
   ],
@@ -74,6 +71,7 @@ export class CarsPage implements OnInit {
   filteredCars: Car[] = [];
   documents: Document[] = [];
   searchTerm: string = '';
+  typeFilter: 'all' | 'voiture' | 'moto' = 'all';
 
   constructor(
     private databaseService: DatabaseService,
@@ -81,7 +79,7 @@ export class CarsPage implements OnInit {
     private alertController: AlertController,
     private toastController: ToastController,
     private authService: AuthService,
-    private router: Router
+    private router: Router,
   ) {
     addIcons({
       add,
@@ -92,6 +90,8 @@ export class CarsPage implements OnInit {
       documentText,
       carSport,
       close,
+      chevronForward,
+      bicycle,
     });
   }
 
@@ -115,19 +115,30 @@ export class CarsPage implements OnInit {
         console.log('User not authenticated, redirecting to auth page');
         await this.showToast(
           'Vous devez vous connecter pour accéder aux véhicules',
-          'warning'
+          'warning',
         );
         this.router.navigate(['/auth']);
         return;
       }
 
       this.cars = await this.databaseService.getCars();
+
+      // Run migration for vehicles without typeVehicule
+      const needsMigration = this.cars.some((car) => !car.typeVehicule);
+      if (needsMigration) {
+        const updated = await this.databaseService.migrateVehicleTypes();
+        if (updated > 0) {
+          console.log(`Migrated ${updated} vehicles to have typeVehicule`);
+          this.cars = await this.databaseService.getCars();
+        }
+      }
+
       this.filteredCars = [...this.cars];
     } catch (error) {
       console.error('Error loading cars:', error);
       await this.showToast(
         'Erreur lors du chargement des véhicules. Vérifiez votre connexion.',
-        'danger'
+        'danger',
       );
     }
   }
@@ -141,167 +152,74 @@ export class CarsPage implements OnInit {
   }
 
   filterCars() {
-    if (!this.searchTerm.trim()) {
-      this.filteredCars = [...this.cars];
-      return;
+    let filtered = [...this.cars];
+
+    // Filter by type
+    if (this.typeFilter !== 'all') {
+      filtered = filtered.filter((car) => car.typeVehicule === this.typeFilter);
     }
 
-    const term = this.searchTerm.toLowerCase();
-    this.filteredCars = this.cars.filter(
-      (car) =>
-        car.matricule.toLowerCase().includes(term) ||
-        car.marque.toLowerCase().includes(term) ||
-        car.model.toLowerCase().includes(term) ||
-        car.chauffeur.toLowerCase().includes(term)
-    );
+    // Filter by search term
+    if (this.searchTerm.trim()) {
+      const term = this.searchTerm.toLowerCase();
+      filtered = filtered.filter(
+        (car) =>
+          car.matricule.toLowerCase().includes(term) ||
+          car.marque.toLowerCase().includes(term) ||
+          car.model.toLowerCase().includes(term) ||
+          car.chauffeur.toLowerCase().includes(term),
+      );
+    }
+
+    this.filteredCars = filtered;
+  }
+
+  setTypeFilter(type: 'all' | 'voiture' | 'moto') {
+    this.typeFilter = type;
+    this.filterCars();
+  }
+
+  getCarCount(): number {
+    return this.cars.filter((c) => c.typeVehicule === 'voiture').length;
+  }
+
+  getMotoCount(): number {
+    return this.cars.filter((c) => c.typeVehicule === 'moto').length;
   }
 
   async addCar() {
-    const alert = await this.alertController.create({
-      header: 'Ajouter un Véhicule',
-      inputs: [
-        {
-          name: 'matricule',
-          type: 'text',
-          placeholder: 'Matricule *',
-        },
-        {
-          name: 'marque',
-          type: 'text',
-          placeholder: 'Marque *',
-        },
-        {
-          name: 'model',
-          type: 'text',
-          placeholder: 'Modèle *',
-        },
-        {
-          name: 'chauffeur',
-          type: 'text',
-          placeholder: 'Nom du chauffeur *',
-        },
-        {
-          name: 'tel',
-          type: 'tel',
-          placeholder: 'Téléphone *',
-        },
-      ],
-      buttons: [
-        {
-          text: 'Annuler',
-          role: 'cancel',
-        },
-        {
-          text: 'Ajouter',
-          handler: async (data) => {
-            if (
-              data.matricule &&
-              data.marque &&
-              data.model &&
-              data.chauffeur &&
-              data.tel
-            ) {
-              const success = await this.databaseService.addCar(data);
-              if (success) {
-                await this.showToast('Véhicule ajouté avec succès', 'success');
-                this.loadCars();
-                return true;
-              } else {
-                await this.showToast("Erreur lors de l'ajout", 'danger');
-                return false;
-              }
-            } else {
-              await this.showToast(
-                'Veuillez remplir tous les champs',
-                'warning'
-              );
-              return false;
-            }
-          },
-        },
-      ],
+    const modal = await this.modalController.create({
+      component: CarModalComponent,
+      componentProps: {
+        isEdit: false,
+      },
     });
 
-    await alert.present();
+    modal.onDidDismiss().then((result) => {
+      if (result.data && result.data.added) {
+        this.loadCars();
+      }
+    });
+
+    await modal.present();
   }
 
   async editCar(car: Car) {
-    const alert = await this.alertController.create({
-      header: 'Modifier le Véhicule',
-      inputs: [
-        {
-          name: 'matricule',
-          type: 'text',
-          value: car.matricule,
-          disabled: true,
-        },
-        {
-          name: 'marque',
-          type: 'text',
-          value: car.marque,
-          placeholder: 'Marque *',
-        },
-        {
-          name: 'model',
-          type: 'text',
-          value: car.model,
-          placeholder: 'Modèle *',
-        },
-        {
-          name: 'chauffeur',
-          type: 'text',
-          value: car.chauffeur,
-          placeholder: 'Nom du chauffeur *',
-        },
-        {
-          name: 'tel',
-          type: 'tel',
-          value: car.tel,
-          placeholder: 'Téléphone *',
-        },
-      ],
-      buttons: [
-        {
-          text: 'Annuler',
-          role: 'cancel',
-        },
-        {
-          text: 'Modifier',
-          handler: async (data) => {
-            if (data.marque && data.model && data.chauffeur && data.tel) {
-              const updatedCar: Car = {
-                ...car,
-                marque: data.marque,
-                model: data.model,
-                chauffeur: data.chauffeur,
-                tel: data.tel,
-              };
-
-              const success = await this.databaseService.updateCar(updatedCar);
-              if (success) {
-                await this.showToast('Véhicule modifié avec succès', 'success');
-                this.loadCars();
-                return true;
-              } else {
-                await this.showToast(
-                  'Erreur lors de la modification',
-                  'danger'
-                );
-                return false;
-              }
-            } else {
-              await this.showToast(
-                'Veuillez remplir tous les champs',
-                'warning'
-              );
-              return false;
-            }
-          },
-        },
-      ],
+    const modal = await this.modalController.create({
+      component: CarModalComponent,
+      componentProps: {
+        car: car,
+        isEdit: true,
+      },
     });
 
-    await alert.present();
+    modal.onDidDismiss().then((result) => {
+      if (result.data && result.data.updated) {
+        this.loadCars();
+      }
+    });
+
+    await modal.present();
   }
 
   async deleteCar(car: Car) {
@@ -329,7 +247,7 @@ export class CarsPage implements OnInit {
               if (success) {
                 await this.showToast(
                   'Véhicule supprimé avec succès',
-                  'success'
+                  'success',
                 );
                 this.loadCars();
                 this.loadDocuments();
@@ -348,6 +266,13 @@ export class CarsPage implements OnInit {
   getCarDocumentsCount(matricule: string): number {
     return this.documents.filter((doc) => doc.matriculeCar === matricule)
       .length;
+  }
+
+  viewCarDocuments(car: Car) {
+    // Navigate to documents page filtered by this car's matricule
+    this.router.navigate(['/tabs/documents'], {
+      queryParams: { filterByMatricule: car.matricule },
+    });
   }
 
   private async showToast(message: string, color: string) {

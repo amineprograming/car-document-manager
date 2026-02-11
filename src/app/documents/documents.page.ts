@@ -1,6 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
+import { Subscription } from 'rxjs';
 import {
   IonContent,
   IonHeader,
@@ -34,6 +36,9 @@ import {
   checkmarkCircle,
   warningOutline,
   closeCircle,
+  folderOpen,
+  close,
+  shieldCheckmark,
 } from 'ionicons/icons';
 import { Document } from '../models/document.model';
 import { Car } from '../models/car.model';
@@ -67,18 +72,23 @@ import { DocumentModalComponent } from './document-modal.component';
     FormsModule,
   ],
 })
-export class DocumentsPage implements OnInit {
+export class DocumentsPage implements OnInit, OnDestroy {
   documents: Document[] = [];
   filteredDocuments: Document[] = [];
   cars: Car[] = [];
   searchTerm: string = '';
   activeFilter: 'all' | 'active' | 'expired' | 'expiring' = 'all';
+  filterByMatricule: string | null = null;
+  private queryParamsSubscription: Subscription | null = null;
+  private hasHandledEditParam = false;
 
   constructor(
     private databaseService: DatabaseService,
     private toastController: ToastController,
     private alertController: AlertController,
-    private modalController: ModalController
+    private modalController: ModalController,
+    private route: ActivatedRoute,
+    private router: Router,
   ) {
     addIcons({
       add,
@@ -90,6 +100,9 @@ export class DocumentsPage implements OnInit {
       checkmarkCircle,
       warningOutline,
       closeCircle,
+      folderOpen,
+      close,
+      shieldCheckmark,
     });
   }
 
@@ -101,6 +114,44 @@ export class DocumentsPage implements OnInit {
   async ionViewWillEnter() {
     await this.loadCars();
     await this.loadDocuments();
+
+    // Check for query parameters
+    const params = this.route.snapshot.queryParams;
+
+    // Handle filterByMatricule parameter
+    if (params['filterByMatricule']) {
+      this.filterByMatricule = params['filterByMatricule'];
+      this.filterDocuments();
+    }
+
+    // Check for editDocumentId query parameter (only once per navigation)
+    if (params['editDocumentId'] && !this.hasHandledEditParam) {
+      this.hasHandledEditParam = true;
+      const documentToEdit = this.documents.find(
+        (doc) => doc.id === params['editDocumentId'],
+      );
+      if (documentToEdit) {
+        await this.editDocument(documentToEdit);
+        // Clear the query parameter after handling
+        this.router.navigate([], {
+          relativeTo: this.route,
+          queryParams: {},
+          replaceUrl: true,
+        });
+      }
+    }
+  }
+
+  ionViewDidLeave() {
+    // Reset the flags when leaving the page
+    this.hasHandledEditParam = false;
+    this.filterByMatricule = null;
+  }
+
+  ngOnDestroy() {
+    if (this.queryParamsSubscription) {
+      this.queryParamsSubscription.unsubscribe();
+    }
   }
 
   async loadDocuments() {
@@ -123,13 +174,20 @@ export class DocumentsPage implements OnInit {
   filterDocuments() {
     let filtered = this.documents;
 
+    // Filter by matricule (from vehicle page click)
+    if (this.filterByMatricule) {
+      filtered = filtered.filter(
+        (doc) => doc.matriculeCar === this.filterByMatricule,
+      );
+    }
+
     // Filter by search term
     if (this.searchTerm.trim()) {
       const searchLower = this.searchTerm.toLowerCase();
       filtered = filtered.filter(
         (doc) =>
           doc.typeDocument.toLowerCase().includes(searchLower) ||
-          doc.matriculeCar.toLowerCase().includes(searchLower)
+          doc.matriculeCar.toLowerCase().includes(searchLower),
       );
     }
 
@@ -167,6 +225,17 @@ export class DocumentsPage implements OnInit {
 
   setFilter(filter: 'all' | 'active' | 'expired' | 'expiring') {
     this.activeFilter = filter;
+    this.filterDocuments();
+  }
+
+  clearVehicleFilter() {
+    this.filterByMatricule = null;
+    // Clear the query parameter from URL
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {},
+      replaceUrl: true,
+    });
     this.filterDocuments();
   }
 
@@ -208,7 +277,7 @@ export class DocumentsPage implements OnInit {
     if (this.cars.length === 0) {
       await this.showToast(
         "Aucun véhicule disponible. Veuillez d'abord ajouter un véhicule.",
-        'warning'
+        'warning',
       );
       return;
     }
@@ -268,7 +337,7 @@ export class DocumentsPage implements OnInit {
             }
 
             const success = await this.databaseService.deleteDocument(
-              document.id
+              document.id,
             );
             if (success) {
               await this.showToast('Document supprimé avec succès', 'success');
@@ -276,7 +345,7 @@ export class DocumentsPage implements OnInit {
             } else {
               await this.showToast(
                 'Erreur lors de la suppression du document',
-                'danger'
+                'danger',
               );
             }
           },
@@ -287,9 +356,46 @@ export class DocumentsPage implements OnInit {
     await alert.present();
   }
 
+  getActiveCount(): number {
+    return this.documents.filter((doc) => doc.documentActive).length;
+  }
+
+  getExpiringCount(): number {
+    const today = new Date();
+    const thirtyDaysFromNow = new Date();
+    thirtyDaysFromNow.setDate(today.getDate() + 30);
+
+    return this.documents.filter((doc) => {
+      const expiration =
+        typeof doc.dateFin === 'string' ? new Date(doc.dateFin) : doc.dateFin;
+      return expiration >= today && expiration <= thirtyDaysFromNow;
+    }).length;
+  }
+
+  getDocumentTypeIcon(typeDocument: string): string {
+    const type = typeDocument.toLowerCase();
+    if (type.includes('assurance')) return 'shield-checkmark';
+    if (type.includes('visite') || type.includes('technique'))
+      return 'checkmark-circle';
+    if (type.includes('carte') || type.includes('grise')) return 'car';
+    return 'document-text';
+  }
+
+  getStatusGradientClass(dateFin: Date | string): string {
+    const today = new Date();
+    const expiration =
+      typeof dateFin === 'string' ? new Date(dateFin) : dateFin;
+    const diffTime = expiration.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) return 'danger';
+    if (diffDays <= 30) return 'warning';
+    return 'success';
+  }
+
   private async showToast(
     message: string,
-    color: 'success' | 'danger' | 'warning' = 'success'
+    color: 'success' | 'danger' | 'warning' = 'success',
   ) {
     const toast = await this.toastController.create({
       message,

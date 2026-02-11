@@ -2,12 +2,12 @@ import { Injectable, inject } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import {
   Auth,
-  GoogleAuthProvider,
   signInWithCredential,
+  signInWithPopup,
   signOut,
   onAuthStateChanged,
-  User as FirebaseUser,
 } from '@angular/fire/auth';
+import { GoogleAuthProvider, User as FirebaseUser } from 'firebase/auth';
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 import { Capacitor } from '@capacitor/core';
 import { User } from '../models/user.model';
@@ -130,9 +130,10 @@ export class AuthService {
     try {
       console.log('Starting Google Sign-In...');
 
-      // Check if we're on a platform that supports Google Auth
+      // Check if we're on a native platform or web browser
       if (!Capacitor.isNativePlatform()) {
-        throw new Error('Google Sign-In seulement disponible sur mobile');
+        // Use Firebase popup sign-in for web browser
+        return await this.signInWithGoogleWeb();
       }
 
       // First, ensure Google Auth is initialized
@@ -144,7 +145,7 @@ export class AuthService {
         // Check if it's a configuration error
         if (initError.message?.includes('Configuration client ID invalide')) {
           throw new Error(
-            'Configuration Google incomplète. Veuillez configurer le client ID dans Firebase Console.'
+            'Configuration Google incomplète. Veuillez configurer le client ID dans Firebase Console.',
           );
         }
 
@@ -161,7 +162,7 @@ export class AuthService {
       // Add timeout to prevent hanging
       const signInPromise = GoogleAuth.signIn();
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Timeout')), 30000)
+        setTimeout(() => reject(new Error('Timeout')), 30000),
       );
 
       const googleUser = (await Promise.race([
@@ -177,16 +178,16 @@ export class AuthService {
             // Use Google credentials to sign in to Firebase
             const credential = GoogleAuthProvider.credential(
               googleUser.authentication.idToken,
-              googleUser.authentication.accessToken
+              googleUser.authentication.accessToken,
             );
 
             const firebaseResult = await signInWithCredential(
               this.auth,
-              credential
+              credential,
             );
             console.log(
               'Firebase sign-in successful:',
-              firebaseResult.user.email
+              firebaseResult.user.email,
             );
 
             // Firebase auth state change will handle user update
@@ -210,7 +211,7 @@ export class AuthService {
             this.currentUserSubject.next(user);
             console.log(
               'User signed in successfully (without Firebase):',
-              user
+              user,
             );
             return user;
           }
@@ -280,6 +281,55 @@ export class AuthService {
         errorMessage = `Erreur: ${error.code || 'unknown'} - ${
           error.message || 'Problème de connexion'
         }`;
+      }
+
+      throw new Error(errorMessage);
+    }
+  }
+
+  /**
+   * Sign in with Google using Firebase popup for web browsers
+   */
+  private async signInWithGoogleWeb(): Promise<User | null> {
+    try {
+      console.log('Starting Google Sign-In for web...');
+
+      const provider = new GoogleAuthProvider();
+      provider.addScope('email');
+      provider.addScope('profile');
+
+      const result = await signInWithPopup(this.auth, provider);
+
+      if (result.user) {
+        const user: User = {
+          uid: result.user.uid,
+          email: result.user.email || '',
+          displayName: result.user.displayName || '',
+          photoURL: result.user.photoURL || '',
+        };
+
+        this.setCurrentUser(user);
+        console.log('Web Google Sign-In successful:', user.email);
+        return user;
+      }
+
+      return null;
+    } catch (error: any) {
+      console.error('Web Google Sign-In error:', error);
+
+      let errorMessage = 'Erreur de connexion Google';
+
+      if (error.code === 'auth/popup-closed-by-user') {
+        errorMessage = "Connexion annulée par l'utilisateur.";
+      } else if (error.code === 'auth/popup-blocked') {
+        errorMessage =
+          'Popup bloquée. Veuillez autoriser les popups pour ce site.';
+      } else if (error.code === 'auth/cancelled-popup-request') {
+        errorMessage = 'Requête de connexion annulée.';
+      } else if (error.code === 'auth/network-request-failed') {
+        errorMessage = 'Erreur de réseau. Vérifiez votre connexion internet.';
+      } else if (error.message) {
+        errorMessage = `Erreur: ${error.code || 'unknown'} - ${error.message}`;
       }
 
       throw new Error(errorMessage);

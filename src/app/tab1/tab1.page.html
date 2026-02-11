@@ -151,6 +151,8 @@
               *ngFor="let document of stats.soonToExpireDocuments"
               class="expiring-item item-interactive"
               lines="none"
+              button
+              (click)="openDocumentForEdit(document)"
             >
               <div slot="start" class="document-icon">
                 <div
@@ -189,66 +191,6 @@
           </ion-list>
         </ion-card-content>
       </ion-card>
-    </div>
-
-    <!-- Enhanced Quick Actions -->
-    <div class="actions-section">
-      <h2 class="section-title">
-        <ion-icon name="rocket-outline"></ion-icon>
-        Actions rapides
-      </h2>
-      <div class="quick-actions animate-stagger">
-        <ion-card
-          class="action-card cars-action"
-          button
-          routerLink="/tabs/cars"
-        >
-          <ion-card-content>
-            <div class="action-icon">
-              <ion-icon name="car-sport"></ion-icon>
-            </div>
-            <div class="action-content">
-              <h3>Véhicules</h3>
-              <p>Gérer votre flotte</p>
-            </div>
-            <ion-icon name="chevron-forward" class="action-arrow"></ion-icon>
-          </ion-card-content>
-        </ion-card>
-
-        <ion-card
-          class="action-card documents-action"
-          button
-          routerLink="/tabs/documents"
-        >
-          <ion-card-content>
-            <div class="action-icon">
-              <ion-icon name="document-text"></ion-icon>
-            </div>
-            <div class="action-content">
-              <h3>Documents</h3>
-              <p>Suivre les échéances</p>
-            </div>
-            <ion-icon name="chevron-forward" class="action-arrow"></ion-icon>
-          </ion-card-content>
-        </ion-card>
-
-        <ion-card
-          class="action-card settings-action"
-          button
-          routerLink="/tabs/settings"
-        >
-          <ion-card-content>
-            <div class="action-icon">
-              <ion-icon name="settings"></ion-icon>
-            </div>
-            <div class="action-content">
-              <h3>Paramètres</h3>
-              <p>Configurer l'app</p>
-            </div>
-            <ion-icon name="chevron-forward" class="action-arrow"></ion-icon>
-          </ion-card-content>
-        </ion-card>
-      </div>
     </div>
 
     <!-- Empty State -->

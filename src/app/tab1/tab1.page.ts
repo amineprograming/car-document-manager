@@ -51,6 +51,7 @@ import {
 import { NotificationService } from '../services/notification.service';
 import { DatabaseService } from '../services/firebase-database.service';
 import { User } from '../models/user.model';
+import { Document } from '../models/document.model';
 
 @Component({
   selector: 'app-tab1',
@@ -97,7 +98,7 @@ export class Tab1Page implements OnInit, OnDestroy {
     private notificationService: NotificationService,
     private databaseService: DatabaseService,
     private router: Router,
-    private alertController: AlertController
+    private alertController: AlertController,
   ) {
     addIcons({
       refresh,
@@ -188,5 +189,12 @@ export class Tab1Page implements OnInit, OnDestroy {
 
   getDaysUntilExpiration(expirationDate: Date): number {
     return this.notificationService.getDaysUntilExpiration(expirationDate);
+  }
+
+  openDocumentForEdit(document: Document) {
+    // Navigate to documents page with the document ID as a query parameter
+    this.router.navigate(['/tabs/documents'], {
+      queryParams: { editDocumentId: document.id },
+    });
   }
 }

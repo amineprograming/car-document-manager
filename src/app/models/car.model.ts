@@ -5,6 +5,7 @@ export interface Car {
   model: string;
   chauffeur: string;
   tel: string;
+  typeVehicule: 'voiture' | 'moto';
   createdAt?: Date;
   updatedAt?: Date;
 }

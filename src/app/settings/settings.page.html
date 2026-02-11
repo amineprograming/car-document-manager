@@ -1,202 +1,299 @@
 <ion-header [translucent]="true">
-  <ion-toolbar>
-    <ion-title>Réglages</ion-title>
+  <ion-toolbar class="header-toolbar">
+    <ion-title class="header-title">
+      <ion-icon name="settings-outline" class="title-icon"></ion-icon>
+      Réglages
+    </ion-title>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true" class="ion-padding">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">Réglages</ion-title>
-    </ion-toolbar>
-  </ion-header>
-
-  <!-- Configuration des notifications -->
-  <ion-card>
-    <ion-card-header>
-      <ion-card-title>
-        <ion-icon name="notifications-outline" slot="start"></ion-icon>
-        Configuration des Notifications
-      </ion-card-title>
-      <ion-card-subtitle>
-        Personnalisez les alertes pour les documents expirés
-      </ion-card-subtitle>
-    </ion-card-header>
-
-    <ion-card-content>
-      <!-- Activer/Désactiver les notifications -->
-      <ion-item>
-        <ion-checkbox
-          [(ngModel)]="config.enableNotifications"
-          (ionChange)="onNotificationToggle()"
-          slot="start"
-        ></ion-checkbox>
-        <ion-label class="ion-margin-start">
-          <h3>Activer les notifications</h3>
-          <p>Recevoir des alertes pour les documents expirés</p>
-        </ion-label>
-      </ion-item>
-
-      <!-- Nombre de jours avant expiration -->
-      <ion-item [class.item-disabled]="!config.enableNotifications">
-        <ion-label position="stacked">
-          <h3>Jours avant expiration</h3>
-          <p>Nombre de jours avant l'expiration pour être notifié</p>
-        </ion-label>
-        <ion-input
-          [(ngModel)]="config.notificationDays"
-          type="number"
-          min="1"
-          max="365"
-          placeholder="30"
-          [disabled]="!config.enableNotifications"
-          (ionBlur)="onNotificationDaysChange()"
-        ></ion-input>
-      </ion-item>
-
-      <!-- Heures de notifications -->
-      <ion-item [class.item-disabled]="!config.enableNotifications">
-        <ion-label position="stacked">
-          <h3>Heures de notifications</h3>
-          <p>Sélectionnez les heures auxquelles recevoir les notifications</p>
-        </ion-label>
-      </ion-item>
-
-      <!-- Liste des heures sélectionnées -->
-      <div class="notification-hours" *ngIf="config.enableNotifications">
-        <ion-chip
-          *ngFor="let hour of config.notificationHours; let i = index"
-          color="primary"
-          (click)="removeNotificationHour(i)"
+<ion-content [fullscreen]="true" class="settings-content">
+  <div class="settings-container animate-fade-in">
+    <!-- Stats Summary -->
+    <div class="stats-summary">
+      <div class="stat-item">
+        <div
+          class="stat-icon"
+          [class.active]="config.enableNotifications"
+          [class.inactive]="!config.enableNotifications"
         >
-          <ion-label>{{ formatHour(hour) }}</ion-label>
-          <ion-icon name="close-circle"></ion-icon>
-        </ion-chip>
-
-        <ion-button
-          fill="outline"
-          size="small"
-          (click)="showHourPicker()"
-          [disabled]="config.notificationHours.length >= 6"
-        >
-          <ion-icon name="add" slot="icon-only"></ion-icon>
-        </ion-button>
-      </div>
-
-      <!-- Sélecteur d'heure -->
-      <ion-item *ngIf="showHourSelector && config.enableNotifications">
-        <ion-label position="stacked">Ajouter une heure</ion-label>
-        <ion-select
-          [(ngModel)]="selectedHour"
-          placeholder="Choisir une heure"
-          (ionChange)="addNotificationHour()"
-        >
-          <ion-select-option *ngFor="let hour of availableHours" [value]="hour">
-            {{ formatHour(hour) }}
-          </ion-select-option>
-        </ion-select>
-      </ion-item>
-
-      <!-- Intervalles de notifications -->
-      <ion-item [class.item-disabled]="!config.enableNotifications">
-        <ion-label position="stacked">
-          <h3>Intervalles de notifications</h3>
-          <p>
-            Jours avant expiration pour recevoir des notifications (ex: 7, 3, 1,
-            0)
-          </p>
-        </ion-label>
-      </ion-item>
-
-      <!-- Liste des intervalles sélectionnés -->
-      <div class="notification-intervals" *ngIf="config.enableNotifications">
-        <ion-chip
-          *ngFor="let interval of config.notificationIntervals; let i = index"
-          color="secondary"
-          (click)="removeNotificationInterval(i)"
-        >
-          <ion-label
-            >{{ interval === 0 ? 'Jour J' : interval + 'j avant' }}</ion-label
+          <ion-icon name="notifications"></ion-icon>
+        </div>
+        <div class="stat-info">
+          <span class="stat-number"
+            >{{ config.enableNotifications ? 'ON' : 'OFF' }}</span
           >
-          <ion-icon name="close-circle"></ion-icon>
-        </ion-chip>
-
-        <ion-button
-          fill="outline"
-          size="small"
-          (click)="showIntervalPicker()"
-          [disabled]="config.notificationIntervals.length >= 10"
-        >
-          <ion-icon name="add" slot="icon-only"></ion-icon>
-        </ion-button>
+          <span class="stat-label">Alertes</span>
+        </div>
       </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <div class="stat-icon gradient-success">
+          <ion-icon name="calendar"></ion-icon>
+        </div>
+        <div class="stat-info">
+          <span class="stat-number">{{ config.notificationDays }}j</span>
+          <span class="stat-label">Avant expiration</span>
+        </div>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <div class="stat-icon gradient-warning">
+          <ion-icon name="time"></ion-icon>
+        </div>
+        <div class="stat-info">
+          <span class="stat-number">{{ config.notificationHours.length }}</span>
+          <span class="stat-label">Heures</span>
+        </div>
+      </div>
+    </div>
 
-      <!-- Sélecteur d'intervalle -->
-      <ion-item *ngIf="showIntervalSelector && config.enableNotifications">
-        <ion-label position="stacked"
-          >Ajouter un intervalle (jours avant expiration)</ion-label
+    <!-- Notifications Section -->
+    <div class="section-title animate-slide-in-right">
+      <ion-icon name="notifications-outline"></ion-icon>
+      Configuration des Notifications
+    </div>
+
+    <ion-card class="settings-card">
+      <ion-card-content>
+        <!-- Enable/Disable Notifications -->
+        <div class="setting-item">
+          <div class="setting-icon" [class.active]="config.enableNotifications">
+            <ion-icon name="notifications"></ion-icon>
+          </div>
+          <div class="setting-content">
+            <h3>Activer les notifications</h3>
+            <p>Recevoir des alertes pour les documents expirés</p>
+          </div>
+          <ion-toggle
+            [(ngModel)]="config.enableNotifications"
+            (ionChange)="onNotificationToggle()"
+            class="elegant-toggle"
+          ></ion-toggle>
+        </div>
+
+        <!-- Days Before Expiration -->
+        <div
+          class="setting-item"
+          [class.disabled]="!config.enableNotifications"
         >
-        <ion-input
-          [(ngModel)]="selectedInterval"
-          type="number"
-          min="0"
-          max="365"
-          placeholder="Ex: 7 pour 7 jours avant"
-          (ionBlur)="addNotificationInterval()"
-        ></ion-input>
-      </ion-item>
-    </ion-card-content>
-  </ion-card>
+          <div class="setting-icon gradient-success">
+            <ion-icon name="calendar"></ion-icon>
+          </div>
+          <div class="setting-content">
+            <h3>Jours avant expiration</h3>
+            <p>Nombre de jours avant l'expiration pour être notifié</p>
+          </div>
+          <div class="setting-input">
+            <ion-input
+              [(ngModel)]="config.notificationDays"
+              type="number"
+              min="1"
+              max="365"
+              placeholder="30"
+              [disabled]="!config.enableNotifications"
+              (ionBlur)="onNotificationDaysChange()"
+              class="number-input"
+            ></ion-input>
+          </div>
+        </div>
+      </ion-card-content>
+    </ion-card>
 
-  <!-- Configuration générale -->
-  <ion-card>
-    <ion-card-header>
-      <ion-card-title>
-        <ion-icon name="settings-outline" slot="start"></ion-icon>
-        Configuration Générale
-      </ion-card-title>
-    </ion-card-header>
+    <!-- Notification Hours Section -->
+    <div
+      class="section-title animate-slide-in-right"
+      *ngIf="config.enableNotifications"
+    >
+      <ion-icon name="time-outline"></ion-icon>
+      Heures de Notifications
+    </div>
 
-    <ion-card-content>
-      <!-- Bouton pour tester les notifications -->
-      <ion-item button (click)="testNotification()">
-        <ion-icon name="notifications-outline" slot="start"></ion-icon>
-        <ion-label>
-          <h3>Tester les notifications</h3>
-          <p>Envoyer une notification de test dans 5 secondes</p>
-        </ion-label>
-      </ion-item>
+    <ion-card class="settings-card" *ngIf="config.enableNotifications">
+      <ion-card-content>
+        <p class="section-description">
+          Sélectionnez les heures auxquelles vous souhaitez recevoir les
+          notifications
+        </p>
 
-      <!-- Bouton pour réinitialiser -->
-      <ion-item button (click)="resetToDefaults()">
-        <ion-icon name="refresh-outline" slot="start"></ion-icon>
-        <ion-label>
-          <h3>Réinitialiser aux valeurs par défaut</h3>
-          <p>Remettre tous les paramètres à leur valeur d'origine</p>
-        </ion-label>
-      </ion-item>
+        <div class="chips-container">
+          <ion-chip
+            *ngFor="let hour of config.notificationHours; let i = index"
+            class="time-chip"
+            (click)="removeNotificationHour(i)"
+          >
+            <ion-icon name="time"></ion-icon>
+            <ion-label>{{ formatHour(hour) }}</ion-label>
+            <ion-icon name="close-circle" class="remove-icon"></ion-icon>
+          </ion-chip>
 
-      <!-- Informations sur la configuration actuelle -->
-      <ion-item>
-        <ion-label>
-          <h3>Configuration actuelle</h3>
-          <p>
-            Notifications: {{ config.enableNotifications ? 'Activées' :
-            'Désactivées' }}<br />
-            Jours avant expiration: {{ config.notificationDays }}<br />
-            Heures: {{ getNotificationHoursText() }}<br />
-            Intervalles: {{ getNotificationIntervalsText() }}
-          </p>
-        </ion-label>
-      </ion-item>
-    </ion-card-content>
-  </ion-card>
+          <ion-button
+            class="add-chip-btn"
+            fill="clear"
+            size="small"
+            (click)="showHourPicker()"
+            [disabled]="config.notificationHours.length >= 6"
+          >
+            <ion-icon name="add-circle" slot="icon-only"></ion-icon>
+          </ion-button>
+        </div>
 
-  <!-- Actions -->
-  <div class="actions ion-margin-top">
-    <ion-button expand="block" color="success" (click)="saveConfiguration()">
-      <ion-icon name="save-outline" slot="start"></ion-icon>
-      Sauvegarder la Configuration
-    </ion-button>
+        <!-- Hour Selector -->
+        <div class="selector-wrapper" *ngIf="showHourSelector">
+          <ion-select
+            [(ngModel)]="selectedHour"
+            placeholder="Choisir une heure"
+            (ionChange)="addNotificationHour()"
+            interface="action-sheet"
+            class="elegant-select"
+          >
+            <ion-select-option
+              *ngFor="let hour of availableHours"
+              [value]="hour"
+            >
+              {{ formatHour(hour) }}
+            </ion-select-option>
+          </ion-select>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- Notification Intervals Section -->
+    <div
+      class="section-title animate-slide-in-right"
+      *ngIf="config.enableNotifications"
+    >
+      <ion-icon name="repeat-outline"></ion-icon>
+      Intervalles de Rappel
+    </div>
+
+    <ion-card class="settings-card" *ngIf="config.enableNotifications">
+      <ion-card-content>
+        <p class="section-description">
+          Jours avant expiration pour recevoir des rappels (ex: 7, 3, 1, 0)
+        </p>
+
+        <div class="chips-container">
+          <ion-chip
+            *ngFor="let interval of config.notificationIntervals; let i = index"
+            class="interval-chip"
+            (click)="removeNotificationInterval(i)"
+          >
+            <ion-icon name="calendar"></ion-icon>
+            <ion-label
+              >{{ interval === 0 ? 'Jour J' : interval + 'j avant' }}</ion-label
+            >
+            <ion-icon name="close-circle" class="remove-icon"></ion-icon>
+          </ion-chip>
+
+          <ion-button
+            class="add-chip-btn"
+            fill="clear"
+            size="small"
+            (click)="showIntervalPicker()"
+            [disabled]="config.notificationIntervals.length >= 10"
+          >
+            <ion-icon name="add-circle" slot="icon-only"></ion-icon>
+          </ion-button>
+        </div>
+
+        <!-- Interval Selector -->
+        <div class="selector-wrapper" *ngIf="showIntervalSelector">
+          <ion-input
+            [(ngModel)]="selectedInterval"
+            type="number"
+            min="0"
+            max="365"
+            placeholder="Ex: 7 pour 7 jours avant"
+            (ionBlur)="addNotificationInterval()"
+            class="elegant-input"
+          ></ion-input>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- General Configuration Section -->
+    <div class="section-title animate-slide-in-right">
+      <ion-icon name="cog-outline"></ion-icon>
+      Configuration Générale
+    </div>
+
+    <ion-card class="settings-card">
+      <ion-card-content>
+        <!-- Test Notification -->
+        <div class="action-item" (click)="testNotification()">
+          <div class="action-icon gradient-info">
+            <ion-icon name="notifications"></ion-icon>
+          </div>
+          <div class="action-content">
+            <h3>Tester les notifications</h3>
+            <p>Envoyer une notification de test dans 5 secondes</p>
+          </div>
+          <ion-icon name="chevron-forward" class="action-arrow"></ion-icon>
+        </div>
+
+        <!-- Reset to Defaults -->
+        <div class="action-item" (click)="resetToDefaults()">
+          <div class="action-icon gradient-danger">
+            <ion-icon name="refresh"></ion-icon>
+          </div>
+          <div class="action-content">
+            <h3>Réinitialiser aux valeurs par défaut</h3>
+            <p>Remettre tous les paramètres à leur valeur d'origine</p>
+          </div>
+          <ion-icon name="chevron-forward" class="action-arrow"></ion-icon>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- Summary Section -->
+    <div class="section-title animate-slide-in-right">
+      <ion-icon name="information-circle-outline"></ion-icon>
+      Résumé
+    </div>
+
+    <ion-card class="summary-card">
+      <ion-card-content>
+        <div class="summary-grid">
+          <div class="summary-item">
+            <span class="summary-label">Notifications</span>
+            <span
+              class="summary-value"
+              [class.active]="config.enableNotifications"
+            >
+              {{ config.enableNotifications ? 'Activées' : 'Désactivées' }}
+            </span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">Jours avant expiration</span>
+            <span class="summary-value"
+              >{{ config.notificationDays }} jours</span
+            >
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">Heures</span>
+            <span class="summary-value">{{ getNotificationHoursText() }}</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">Intervalles</span>
+            <span class="summary-value"
+              >{{ getNotificationIntervalsText() }}</span
+            >
+          </div>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- Save Button -->
+    <div class="save-section">
+      <ion-button
+        class="save-button"
+        expand="block"
+        (click)="saveConfiguration()"
+      >
+        <ion-icon name="checkmark-circle" slot="start"></ion-icon>
+        Sauvegarder la Configuration
+      </ion-button>
+    </div>
   </div>
 </ion-content>

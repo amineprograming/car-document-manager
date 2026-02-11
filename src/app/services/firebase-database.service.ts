@@ -61,15 +61,15 @@ export class DatabaseService {
       // Provide more specific error messages
       if (error?.code === 'permission-denied') {
         throw new Error(
-          'Permission denied: You need to authenticate or check Firestore security rules'
+          'Permission denied: You need to authenticate or check Firestore security rules',
         );
       } else if (error?.code === 'unavailable') {
         throw new Error(
-          'Firestore is currently unavailable. Please try again later.'
+          'Firestore is currently unavailable. Please try again later.',
         );
       } else {
         throw new Error(
-          'Failed to load cars: ' + (error?.message || 'Unknown error')
+          'Failed to load cars: ' + (error?.message || 'Unknown error'),
         );
       }
     }
@@ -86,6 +86,7 @@ export class DatabaseService {
         model: car.model,
         chauffeur: car.chauffeur,
         tel: car.tel,
+        typeVehicule: car.typeVehicule || 'voiture',
         updatedAt: Timestamp.now(),
       };
       await updateDoc(carDoc, updateData);
@@ -93,6 +94,33 @@ export class DatabaseService {
     } catch (error) {
       console.error('Error updating car:', error);
       return false;
+    }
+  }
+
+  // Migration: Set typeVehicule for all existing cars
+  async migrateVehicleTypes(): Promise<number> {
+    try {
+      const cars = await this.getCars();
+      let updatedCount = 0;
+
+      for (const car of cars) {
+        if (!car.typeVehicule) {
+          const carDoc = doc(this.firestore, 'cars', car.id!);
+          await updateDoc(carDoc, {
+            typeVehicule: 'voiture',
+            updatedAt: Timestamp.now(),
+          });
+          updatedCount++;
+        }
+      }
+
+      console.log(
+        `Migration complete: ${updatedCount} vehicles updated with typeVehicule`,
+      );
+      return updatedCount;
+    } catch (error) {
+      console.error('Error during migration:', error);
+      return -1;
     }
   }
 
@@ -104,7 +132,7 @@ export class DatabaseService {
       if (car) {
         const q = query(
           documentsCollection,
-          where('matriculeCar', '==', car.matricule)
+          where('matriculeCar', '==', car.matricule),
         );
         const documentsSnapshot = await getDocs(q);
 
@@ -173,15 +201,15 @@ export class DatabaseService {
       // Provide more specific error messages
       if (error?.code === 'permission-denied') {
         throw new Error(
-          'Permission denied: You need to authenticate or check Firestore security rules'
+          'Permission denied: You need to authenticate or check Firestore security rules',
         );
       } else if (error?.code === 'unavailable') {
         throw new Error(
-          'Firestore is currently unavailable. Please try again later.'
+          'Firestore is currently unavailable. Please try again later.',
         );
       } else {
         throw new Error(
-          'Failed to load documents: ' + (error?.message || 'Unknown error')
+          'Failed to load documents: ' + (error?.message || 'Unknown error'),
         );
       }
     }
@@ -243,11 +271,11 @@ export class DatabaseService {
 
       const expiringDocs = documents
         .filter(
-          (doc: Document) => doc.dateFin >= now && doc.dateFin <= futureDate
+          (doc: Document) => doc.dateFin >= now && doc.dateFin <= futureDate,
         ) // Filter documents expiring within the specified days
         .sort(
           (a: Document, b: Document) =>
-            a.dateFin.getTime() - b.dateFin.getTime()
+            a.dateFin.getTime() - b.dateFin.getTime(),
         ); // Sort by date ascending
 
       return expiringDocs;
@@ -257,16 +285,16 @@ export class DatabaseService {
       // Provide more specific error messages
       if (error?.code === 'permission-denied') {
         throw new Error(
-          'Permission denied: You need to authenticate or check Firestore security rules'
+          'Permission denied: You need to authenticate or check Firestore security rules',
         );
       } else if (error?.code === 'unavailable') {
         throw new Error(
-          'Firestore is currently unavailable. Please try again later.'
+          'Firestore is currently unavailable. Please try again later.',
         );
       } else {
         throw new Error(
           'Failed to load expiring documents: ' +
-            (error?.message || 'Unknown error')
+            (error?.message || 'Unknown error'),
         );
       }
     }
@@ -296,7 +324,7 @@ export class DatabaseService {
         .filter((doc: Document) => doc.dateFin < now) // Filter expired documents
         .sort(
           (a: Document, b: Document) =>
-            b.dateFin.getTime() - a.dateFin.getTime()
+            b.dateFin.getTime() - a.dateFin.getTime(),
         ); // Sort by date descending
 
       return expiredDocs;
@@ -306,16 +334,16 @@ export class DatabaseService {
       // Provide more specific error messages
       if (error?.code === 'permission-denied') {
         throw new Error(
-          'Permission denied: You need to authenticate or check Firestore security rules'
+          'Permission denied: You need to authenticate or check Firestore security rules',
         );
       } else if (error?.code === 'unavailable') {
         throw new Error(
-          'Firestore is currently unavailable. Please try again later.'
+          'Firestore is currently unavailable. Please try again later.',
         );
       } else {
         throw new Error(
           'Failed to load expired documents: ' +
-            (error?.message || 'Unknown error')
+            (error?.message || 'Unknown error'),
         );
       }
     }
@@ -371,7 +399,7 @@ export class DatabaseService {
         const settingsDoc = doc(
           this.firestore,
           'userSettings',
-          querySnapshot.docs[0].id
+          querySnapshot.docs[0].id,
         );
         await updateDoc(settingsDoc, {
           notificationDays: settings.notificationDays,
@@ -433,11 +461,11 @@ export class DatabaseService {
         .filter(
           (doc: Document) =>
             doc.matriculeCar.toLowerCase().includes(searchTermLower) ||
-            doc.typeDocument.toLowerCase().includes(searchTermLower)
+            doc.typeDocument.toLowerCase().includes(searchTermLower),
         )
         .sort(
           (a: Document, b: Document) =>
-            a.dateFin.getTime() - b.dateFin.getTime()
+            a.dateFin.getTime() - b.dateFin.getTime(),
         );
     } catch (error) {
       console.error('Error searching documents:', error);

@@ -1,110 +1,203 @@
 <ion-header [translucent]="true">
-  <ion-toolbar color="primary">
-    <ion-title>Documents</ion-title>
+  <ion-toolbar color="primary" class="header-toolbar">
+    <ion-title class="header-title">
+      <ion-icon name="document-text" class="title-icon"></ion-icon>
+      Documents
+    </ion-title>
     <ion-buttons slot="end">
-      <ion-button (click)="addDocument()">
+      <ion-button fill="clear" (click)="addDocument()" class="header-button">
         <ion-icon name="add"></ion-icon>
       </ion-button>
     </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true">
+<ion-content [fullscreen]="true" class="documents-content">
   <ion-header collapse="condense">
     <ion-toolbar>
       <ion-title size="large">Documents</ion-title>
     </ion-toolbar>
   </ion-header>
 
-  <div class="documents-container">
+  <div class="documents-container animate-fade-in">
+    <!-- Stats Summary -->
+    <div class="stats-summary glass-card animate-slide-in-right">
+      <div class="stat-item">
+        <div class="stat-icon gradient-primary">
+          <ion-icon name="document-text"></ion-icon>
+        </div>
+        <div class="stat-info">
+          <span class="stat-number">{{documents.length}}</span>
+          <span class="stat-label">Total</span>
+        </div>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <div class="stat-icon gradient-success">
+          <ion-icon name="checkmark-circle"></ion-icon>
+        </div>
+        <div class="stat-info">
+          <span class="stat-number">{{getActiveCount()}}</span>
+          <span class="stat-label">Actifs</span>
+        </div>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <div class="stat-icon gradient-danger">
+          <ion-icon name="warning"></ion-icon>
+        </div>
+        <div class="stat-info">
+          <span class="stat-number">{{getExpiringCount()}}</span>
+          <span class="stat-label">À surveiller</span>
+        </div>
+      </div>
+    </div>
+
     <!-- Search and Filter -->
     <div class="search-filter-section">
-      <ion-searchbar
-        [(ngModel)]="searchTerm"
-        (ionInput)="filterDocuments()"
-        placeholder="Rechercher par type ou matricule"
-        debounce="300"
-      >
-      </ion-searchbar>
+      <div class="search-wrapper">
+        <ion-searchbar
+          [(ngModel)]="searchTerm"
+          (ionInput)="filterDocuments()"
+          placeholder="Rechercher par type ou matricule"
+          debounce="300"
+          class="elegant-searchbar"
+        >
+        </ion-searchbar>
+      </div>
 
       <div class="filter-chips">
         <ion-chip
+          [class.active-chip]="activeFilter === 'all'"
           [color]="activeFilter === 'all' ? 'primary' : 'medium'"
           (click)="setFilter('all')"
         >
           <ion-label>Tous</ion-label>
         </ion-chip>
         <ion-chip
-          [color]="activeFilter === 'active' ? 'primary' : 'medium'"
+          [class.active-chip]="activeFilter === 'active'"
+          [color]="activeFilter === 'active' ? 'success' : 'medium'"
           (click)="setFilter('active')"
         >
           <ion-label>Actifs</ion-label>
         </ion-chip>
         <ion-chip
-          [color]="activeFilter === 'expired' ? 'primary' : 'medium'"
+          [class.active-chip]="activeFilter === 'expired'"
+          [color]="activeFilter === 'expired' ? 'danger' : 'medium'"
           (click)="setFilter('expired')"
         >
           <ion-label>Expirés</ion-label>
         </ion-chip>
         <ion-chip
-          [color]="activeFilter === 'expiring' ? 'primary' : 'medium'"
+          [class.active-chip]="activeFilter === 'expiring'"
+          [color]="activeFilter === 'expiring' ? 'warning' : 'medium'"
           (click)="setFilter('expiring')"
         >
-          <ion-label>Expirent Bientôt</ion-label>
+          <ion-label>Bientôt</ion-label>
+        </ion-chip>
+      </div>
+
+      <!-- Vehicle Filter Indicator -->
+      <div class="vehicle-filter-indicator" *ngIf="filterByMatricule">
+        <ion-chip color="secondary" class="vehicle-chip">
+          <ion-icon name="car"></ion-icon>
+          <ion-label>Véhicule: {{filterByMatricule}}</ion-label>
+          <ion-icon
+            name="close-circle"
+            (click)="clearVehicleFilter()"
+            class="close-icon"
+          ></ion-icon>
         </ion-chip>
       </div>
     </div>
 
+    <!-- Section Title -->
+    <h2 class="section-title" *ngIf="filteredDocuments.length > 0">
+      <ion-icon name="folder-open"></ion-icon>
+      Mes Documents
+      <span class="count-badge">{{filteredDocuments.length}}</span>
+    </h2>
+
     <!-- Documents List -->
-    <div *ngIf="filteredDocuments.length > 0; else noDocuments">
+    <div
+      class="documents-grid animate-stagger"
+      *ngIf="filteredDocuments.length > 0; else noDocuments"
+    >
       <ion-card
         *ngFor="let document of filteredDocuments"
         class="document-card"
       >
-        <ion-card-header>
+        <div
+          class="card-gradient-top"
+          [class]="getExpirationStatus(document.dateFin).color"
+        ></div>
+        <ion-card-content>
           <div class="document-header">
-            <div class="document-info">
-              <ion-card-title>{{document.typeDocument}}</ion-card-title>
-              <ion-card-subtitle>{{document.reference}}</ion-card-subtitle>
+            <div
+              class="document-avatar"
+              [class]="getExpirationStatus(document.dateFin).color"
+            >
+              <ion-icon
+                [name]="getDocumentTypeIcon(document.typeDocument)"
+              ></ion-icon>
             </div>
             <div class="document-actions">
-              <ion-button fill="clear" (click)="editDocument(document)">
-                <ion-icon name="create" color="primary"></ion-icon>
+              <ion-button
+                fill="clear"
+                size="small"
+                (click)="editDocument(document)"
+                class="action-btn edit-btn"
+              >
+                <ion-icon name="create"></ion-icon>
               </ion-button>
-              <ion-button fill="clear" (click)="deleteDocument(document)">
-                <ion-icon name="trash" color="danger"></ion-icon>
+              <ion-button
+                fill="clear"
+                size="small"
+                (click)="deleteDocument(document)"
+                class="action-btn delete-btn"
+              >
+                <ion-icon name="trash"></ion-icon>
               </ion-button>
             </div>
           </div>
-        </ion-card-header>
 
-        <ion-card-content>
+          <div class="document-main-info">
+            <h3 class="document-type">{{document.typeDocument}}</h3>
+            <p class="document-reference" *ngIf="document.reference">
+              Réf: {{document.reference}}
+            </p>
+          </div>
+
           <div class="document-details">
-            <div class="detail-item">
-              <ion-icon name="car" color="primary"></ion-icon>
-              <span>{{document.matriculeCar}}</span>
+            <div class="detail-row">
+              <div class="detail-icon">
+                <ion-icon name="car"></ion-icon>
+              </div>
+              <span class="detail-text">{{document.matriculeCar}}</span>
             </div>
-            <div class="detail-item">
-              <ion-icon name="calendar" color="primary"></ion-icon>
-              <span
-                >Du {{document.dateDebut | date:'dd/MM/yyyy'}} au
-                {{document.dateFin | date:'dd/MM/yyyy'}}</span
+            <div class="detail-row">
+              <div class="detail-icon">
+                <ion-icon name="calendar"></ion-icon>
+              </div>
+              <span class="detail-text"
+                >{{document.dateDebut | date:'dd/MM/yyyy'}} - {{document.dateFin
+                | date:'dd/MM/yyyy'}}</span
               >
             </div>
           </div>
 
-          <!-- Status Badge -->
+          <!-- Status Section -->
           <div class="status-section">
-            <ion-chip [color]="getExpirationStatus(document.dateFin).color">
+            <div
+              class="status-badge"
+              [class]="getExpirationStatus(document.dateFin).color"
+            >
               <ion-icon [name]="getStatusIcon(document.dateFin)"></ion-icon>
-              <ion-label
-                >{{getExpirationStatus(document.dateFin).message}}</ion-label
-              >
-            </ion-chip>
-
-            <ion-chip *ngIf="!document.documentActive" color="medium">
-              <ion-label>Inactif</ion-label>
-            </ion-chip>
+              <span>{{getExpirationStatus(document.dateFin).message}}</span>
+            </div>
+            <div class="inactive-badge" *ngIf="!document.documentActive">
+              Inactif
+            </div>
           </div>
         </ion-card-content>
       </ion-card>
@@ -113,7 +206,9 @@
     <!-- Empty State -->
     <ng-template #noDocuments>
       <div class="empty-state">
-        <ion-icon name="document-text" color="medium"></ion-icon>
+        <div class="empty-icon-wrapper">
+          <ion-icon name="document-text"></ion-icon>
+        </div>
         <h3>Aucun document trouvé</h3>
         <p *ngIf="searchTerm || activeFilter !== 'all'">
           Aucun document ne correspond à vos critères.
@@ -121,7 +216,7 @@
         <p *ngIf="!searchTerm && activeFilter === 'all'">
           Commencez par ajouter votre premier document.
         </p>
-        <ion-button (click)="addDocument()" color="primary">
+        <ion-button (click)="addDocument()" class="add-button">
           <ion-icon name="add" slot="start"></ion-icon>
           Ajouter un Document
         </ion-button>
@@ -129,9 +224,9 @@
     </ng-template>
   </div>
 
-  <!-- Floating Action Button -->
-  <ion-fab vertical="bottom" horizontal="end" slot="fixed">
-    <ion-fab-button (click)="addDocument()" color="primary">
+  <!-- Enhanced Floating Action Button -->
+  <ion-fab vertical="bottom" horizontal="end" slot="fixed" class="enhanced-fab">
+    <ion-fab-button (click)="addDocument()" class="main-fab">
       <ion-icon name="add"></ion-icon>
     </ion-fab-button>
   </ion-fab>

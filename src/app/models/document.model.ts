@@ -1,5 +1,6 @@
 export interface Document {
   id?: string;
+  reference?: string;
   typeDocument: string;
   matriculeCar: string;
   dateDebut: Date;

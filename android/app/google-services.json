@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "603137695665-qr4d8kou7ph694lprpdhasoegf91r0ae.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.cardocuments.app",
+            "certificate_hash": "62591fb3292ba2ac55551b40dbe11ade5a1f9c4d"
+          }
+        },
+        {
           "client_id": "603137695665-tmggdqaqetavlkii843agjdv6ncjdk1b.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
