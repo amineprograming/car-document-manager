@@ -24,7 +24,7 @@ export class PushNotificationService {
 
   constructor(
     private configService: ConfigService,
-    private databaseService: DatabaseService
+    private databaseService: DatabaseService,
   ) {
     // Inject DatabaseService to ConfigService to avoid circular dependency
     this.configService.setDatabaseService(this.databaseService);
@@ -41,7 +41,7 @@ export class PushNotificationService {
         const permissionStatus = await LocalNotifications.requestPermissions();
         console.log(
           'Notification permission status:',
-          permissionStatus.display
+          permissionStatus.display,
         );
 
         // Listen for notification actions
@@ -50,7 +50,7 @@ export class PushNotificationService {
           (notification) => {
             console.log('Notification action performed:', notification);
             // Handle notification tap - could navigate to documents page
-          }
+          },
         );
 
         // Start the notification scheduling process
@@ -86,11 +86,11 @@ export class PushNotificationService {
       // Filter active documents that need notifications
       const activeDocuments = documents.filter(
         (doc) =>
-          doc.documentActive && this.shouldScheduleNotification(doc, config)
+          doc.documentActive && this.shouldScheduleNotification(doc, config),
       );
 
       console.log(
-        `Scheduling notifications for ${activeDocuments.length} documents`
+        `Scheduling notifications for ${activeDocuments.length} documents`,
       );
 
       // Schedule notifications for each document and each configured hour
@@ -107,7 +107,7 @@ export class PushNotificationService {
    */
   private shouldScheduleNotification(
     document: Document,
-    config: AppConfig
+    config: AppConfig,
   ): boolean {
     // Only schedule notifications for active documents
     if (!document.documentActive) {
@@ -133,7 +133,7 @@ export class PushNotificationService {
    */
   private async scheduleDocumentNotifications(
     document: Document,
-    config: AppConfig
+    config: AppConfig,
   ): Promise<void> {
     const expirationDate =
       typeof document.dateFin === 'string'
@@ -143,7 +143,7 @@ export class PushNotificationService {
     const now = new Date();
     const diffTime = expirationDate.getTime() - now.getTime();
     const totalDaysUntilExpiration = Math.ceil(
-      diffTime / (1000 * 60 * 60 * 24)
+      diffTime / (1000 * 60 * 60 * 24),
     );
 
     // Use notification intervals from config instead of hardcoded values
@@ -165,7 +165,7 @@ export class PushNotificationService {
               document,
               notificationDate,
               hour,
-              daysUntilExpiration
+              daysUntilExpiration,
             );
           }
         }
@@ -180,7 +180,7 @@ export class PushNotificationService {
     document: Document,
     notificationDate: Date,
     hour: number,
-    daysUntilExpiration: number
+    daysUntilExpiration: number,
   ): Promise<void> {
     try {
       const notificationId = this.generateNotificationId();
@@ -201,7 +201,7 @@ export class PushNotificationService {
             title: '⚠️ Document bientôt expiré',
             body: this.generateNotificationMessage(
               document,
-              daysUntilExpiration
+              daysUntilExpiration,
             ),
             schedule: {
               at: scheduledDate,
@@ -235,7 +235,7 @@ export class PushNotificationService {
           document.typeDocument
         } (${
           document.matriculeCar
-        }) on ${scheduledDate.toLocaleDateString()} at ${hour}:00 (${daysUntilExpiration} days until expiration)`
+        }) on ${scheduledDate.toLocaleDateString()} at ${hour}:00 (${daysUntilExpiration} days until expiration)`,
       );
     } catch (error) {
       console.error('Error scheduling notification:', error);
@@ -247,7 +247,7 @@ export class PushNotificationService {
    */
   private generateNotificationMessage(
     document: Document,
-    daysUntilExpiration: number
+    daysUntilExpiration: number,
   ): string {
     const vehicleInfo = document.matriculeCar;
     const docType = document.typeDocument;
@@ -297,7 +297,7 @@ export class PushNotificationService {
     try {
       const schedules = this.getStoredNotificationSchedules();
       const documentSchedules = schedules.filter(
-        (s) => s.documentId === documentId
+        (s) => s.documentId === documentId,
       );
 
       if (documentSchedules.length > 0) {
@@ -308,12 +308,12 @@ export class PushNotificationService {
 
         // Remove from stored schedules
         const remainingSchedules = schedules.filter(
-          (s) => s.documentId !== documentId
+          (s) => s.documentId !== documentId,
         );
         this.saveAllNotificationSchedules(remainingSchedules);
 
         console.log(
-          `Cancelled ${ids.length} notifications for document ${documentId}`
+          `Cancelled ${ids.length} notifications for document ${documentId}`,
         );
       }
     } catch (error) {
@@ -367,7 +367,7 @@ export class PushNotificationService {
    * Save all notification schedules
    */
   private saveAllNotificationSchedules(
-    schedules: NotificationSchedule[]
+    schedules: NotificationSchedule[],
   ): void {
     try {
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(schedules));
@@ -384,9 +384,94 @@ export class PushNotificationService {
       Notification.requestPermission().then((permission) => {
         if (permission === 'granted') {
           console.log('Web notifications enabled for development');
-          // You could implement web notifications here for testing
+          // Start checking for notification times
+          this.startWebNotificationChecker();
         }
       });
+    }
+  }
+
+  /**
+   * Start a periodic checker for web notifications
+   */
+  private startWebNotificationChecker(): void {
+    // Check every minute if we should show a notification
+    setInterval(async () => {
+      await this.checkAndShowWebNotifications();
+    }, 60000); // Check every 60 seconds
+
+    // Also check immediately on start
+    this.checkAndShowWebNotifications();
+  }
+
+  /**
+   * Check if current time matches notification hours and show web notifications
+   */
+  private async checkAndShowWebNotifications(): Promise<void> {
+    try {
+      const config = await this.configService.getConfigAsync();
+
+      if (!config.enableNotifications) {
+        return;
+      }
+
+      const now = new Date();
+      const currentHour = now.getHours();
+      const currentMinute = now.getMinutes();
+
+      // Only trigger at the start of the configured hours (within first minute)
+      if (
+        !config.notificationHours.includes(currentHour) ||
+        currentMinute !== 0
+      ) {
+        return;
+      }
+
+      // Get documents that need notification
+      const documents = await this.databaseService.getDocuments();
+      const activeDocuments = documents.filter(
+        (doc) =>
+          doc.documentActive && this.shouldScheduleNotification(doc, config),
+      );
+
+      // Show web notification for each document
+      for (const document of activeDocuments) {
+        const expirationDate =
+          typeof document.dateFin === 'string'
+            ? new Date(document.dateFin)
+            : document.dateFin;
+
+        const diffTime = expirationDate.getTime() - now.getTime();
+        const daysUntilExpiration = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        // Check if this matches one of our notification intervals
+        const intervals = config.notificationIntervals || [7, 3, 1, 0];
+        if (
+          intervals.includes(daysUntilExpiration) ||
+          daysUntilExpiration <= intervals[intervals.length - 1]
+        ) {
+          this.showWebNotification(
+            '⚠️ Document bientôt expiré',
+            this.generateNotificationMessage(document, daysUntilExpiration),
+          );
+        }
+      }
+    } catch (error) {
+      console.error('Error checking web notifications:', error);
+    }
+  }
+
+  /**
+   * Show a web notification
+   */
+  private showWebNotification(title: string, body: string): void {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification(title, {
+        body,
+        icon: '/assets/icon/favicon.png',
+        badge: '/assets/icon/favicon.png',
+      });
+      console.log(`Web notification shown: ${title} - ${body}`);
     }
   }
 
@@ -395,24 +480,106 @@ export class PushNotificationService {
    */
   async testNotification(): Promise<void> {
     try {
-      const notificationOptions: ScheduleOptions = {
-        notifications: [
-          {
-            id: 999999,
-            title: '🚗 Test Notification',
-            body: 'Ceci est une notification de test pour vérifier le fonctionnement.',
-            schedule: {
-              at: new Date(Date.now() + 5000), // 5 seconds from now
+      if (Capacitor.isNativePlatform()) {
+        // Native test notification
+        const notificationOptions: ScheduleOptions = {
+          notifications: [
+            {
+              id: 999999,
+              title: '🚗 Test Notification',
+              body: 'Ceci est une notification de test pour vérifier le fonctionnement.',
+              schedule: {
+                at: new Date(Date.now() + 5000), // 5 seconds from now
+              },
+              sound: 'default',
             },
-            sound: 'default',
-          },
-        ],
-      };
+          ],
+        };
 
-      await LocalNotifications.schedule(notificationOptions);
-      console.log('Test notification scheduled');
+        await LocalNotifications.schedule(notificationOptions);
+        console.log('Test notification scheduled');
+      } else {
+        // Web test notification
+        if ('Notification' in window) {
+          if (Notification.permission === 'granted') {
+            setTimeout(() => {
+              this.showWebNotification(
+                '🚗 Test Notification',
+                'Ceci est une notification de test pour vérifier le fonctionnement.',
+              );
+            }, 5000);
+            console.log('Web test notification scheduled for 5 seconds');
+          } else if (Notification.permission !== 'denied') {
+            const permission = await Notification.requestPermission();
+            if (permission === 'granted') {
+              setTimeout(() => {
+                this.showWebNotification(
+                  '🚗 Test Notification',
+                  'Ceci est une notification de test pour vérifier le fonctionnement.',
+                );
+              }, 5000);
+            }
+          }
+        }
+      }
     } catch (error) {
       console.error('Error scheduling test notification:', error);
+    }
+  }
+
+  /**
+   * Check if current hour is in configured notification hours (for debugging)
+   */
+  async isCurrentHourConfigured(): Promise<boolean> {
+    const config = await this.configService.getConfigAsync();
+    const currentHour = new Date().getHours();
+    return config.notificationHours.includes(currentHour);
+  }
+
+  /**
+   * Force check and show notifications now (for testing)
+   */
+  async forceCheckNotifications(): Promise<void> {
+    if (!Capacitor.isNativePlatform()) {
+      const config = await this.configService.getConfigAsync();
+      const currentHour = new Date().getHours();
+
+      console.log(`Current hour: ${currentHour}:00`);
+      console.log(
+        `Configured hours: ${config.notificationHours.map((h) => h + ':00').join(', ')}`,
+      );
+      console.log(`Match: ${config.notificationHours.includes(currentHour)}`);
+
+      // Force show notifications regardless of current minute
+      const documents = await this.databaseService.getDocuments();
+      const activeDocuments = documents.filter(
+        (doc) =>
+          doc.documentActive && this.shouldScheduleNotification(doc, config),
+      );
+
+      console.log(`Documents needing notification: ${activeDocuments.length}`);
+
+      if (
+        activeDocuments.length > 0 &&
+        config.notificationHours.includes(currentHour)
+      ) {
+        for (const document of activeDocuments) {
+          const expirationDate =
+            typeof document.dateFin === 'string'
+              ? new Date(document.dateFin)
+              : document.dateFin;
+
+          const diffTime = expirationDate.getTime() - new Date().getTime();
+          const daysUntilExpiration = Math.ceil(
+            diffTime / (1000 * 60 * 60 * 24),
+          );
+
+          this.showWebNotification(
+            '⚠️ Document bientôt expiré',
+            this.generateNotificationMessage(document, daysUntilExpiration),
+          );
+        }
+      }
     }
   }
 }

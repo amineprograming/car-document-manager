@@ -96,6 +96,7 @@ import { DatabaseService } from '../services/firebase-database.service';
                 <ion-select-option value="Visite Technique"
                   >✅ Visite Technique</ion-select-option
                 >
+                <ion-select-option value="Permis">🪪 Permis</ion-select-option>
               </ion-select>
             </div>
           </div>

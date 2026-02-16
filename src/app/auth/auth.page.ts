@@ -5,7 +5,6 @@ import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import {
   IonContent,
-  IonButton,
   IonIcon,
   IonSpinner,
   IonCard,
@@ -36,7 +35,6 @@ import { GOOGLE_AUTH_CONFIG } from '../config/google-auth.config';
   standalone: true,
   imports: [
     IonContent,
-    IonButton,
     IonIcon,
     IonSpinner,
     IonCard,
@@ -57,7 +55,7 @@ export class AuthPage implements OnInit, OnDestroy {
     private authService: AuthService,
     private router: Router,
     private toastController: ToastController,
-    private loadingController: LoadingController
+    private loadingController: LoadingController,
   ) {
     addIcons({
       carSport,
@@ -112,7 +110,7 @@ export class AuthPage implements OnInit, OnDestroy {
       this.errorMessage = error.message || 'Erreur inconnue';
       await this.showToast(
         error.message || 'Erreur lors de la connexion. Veuillez réessayer.',
-        'danger'
+        'danger',
       );
     } finally {
       this.loading = false;
@@ -124,7 +122,7 @@ export class AuthPage implements OnInit, OnDestroy {
     this.debugInfo = {
       platform: Capacitor.isNativePlatform() ? 'Mobile (Native)' : 'Web',
       clientConfigured: !GOOGLE_AUTH_CONFIG.CLIENT_ID.includes(
-        '603137695665-web.apps.googleusercontent.com'
+        '603137695665-web.apps.googleusercontent.com',
       ),
       pluginAvailable: typeof GoogleAuth !== 'undefined',
       clientId: GOOGLE_AUTH_CONFIG.CLIENT_ID,

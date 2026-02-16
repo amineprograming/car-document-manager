@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { App } from '@capacitor/app';
 import {
   IonContent,
   IonHeader,
@@ -35,6 +36,7 @@ import {
   close,
   chevronForward,
   bicycle,
+  logOutOutline,
 } from 'ionicons/icons';
 import { DatabaseService } from '../services/firebase-database.service';
 import { AuthService } from '../services/auth.service';
@@ -82,16 +84,17 @@ export class CarsPage implements OnInit {
     private router: Router,
   ) {
     addIcons({
+      carSport,
       add,
+      logOutOutline,
+      bicycle,
+      documentText,
       create,
       trash,
       person,
       call,
-      documentText,
-      carSport,
-      close,
       chevronForward,
-      bicycle,
+      close,
     });
   }
 
@@ -283,5 +286,11 @@ export class CarsPage implements OnInit {
       position: 'top',
     });
     await toast.present();
+  }
+
+  async logout() {
+    await this.authService.signOut();
+    this.router.navigate(['/auth']);
+    App.exitApp();
   }
 }

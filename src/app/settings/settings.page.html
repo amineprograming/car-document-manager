@@ -4,11 +4,22 @@
       <ion-icon name="settings-outline" class="title-icon"></ion-icon>
       Réglages
     </ion-title>
+    <ion-buttons slot="end">
+      <ion-button fill="clear" (click)="logout()" class="header-button">
+        <ion-icon name="log-out-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
 <ion-content [fullscreen]="true" class="settings-content">
-  <div class="settings-container animate-fade-in">
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="loading-container">
+    <ion-spinner name="crescent" color="primary"></ion-spinner>
+    <p>Chargement des paramètres...</p>
+  </div>
+
+  <div *ngIf="!isLoading" class="settings-container animate-fade-in">
     <!-- Stats Summary -->
     <div class="stats-summary">
       <div class="stat-item">
@@ -232,6 +243,18 @@
           <ion-icon name="chevron-forward" class="action-arrow"></ion-icon>
         </div>
 
+        <!-- Check Current Hour Notifications -->
+        <div class="action-item" (click)="checkCurrentHourNotifications()">
+          <div class="action-icon gradient-success">
+            <ion-icon name="time"></ion-icon>
+          </div>
+          <div class="action-content">
+            <h3>Vérifier l'heure actuelle</h3>
+            <p>Voir si l'heure actuelle déclenche des notifications</p>
+          </div>
+          <ion-icon name="chevron-forward" class="action-arrow"></ion-icon>
+        </div>
+
         <!-- Reset to Defaults -->
         <div class="action-item" (click)="resetToDefaults()">
           <div class="action-icon gradient-danger">
@@ -293,6 +316,19 @@
       >
         <ion-icon name="checkmark-circle" slot="start"></ion-icon>
         Sauvegarder la Configuration
+      </ion-button>
+    </div>
+
+    <!-- Logout Section -->
+    <div class="logout-section">
+      <ion-button
+        class="logout-button"
+        expand="block"
+        color="danger"
+        (click)="logout()"
+      >
+        <ion-icon name="log-out-outline" slot="start"></ion-icon>
+        Déconnexion
       </ion-button>
     </div>
   </div>

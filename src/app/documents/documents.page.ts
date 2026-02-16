@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
+import { App } from '@capacitor/app';
 import {
   IonContent,
   IonHeader,
@@ -39,10 +40,12 @@ import {
   folderOpen,
   close,
   shieldCheckmark,
+  logOutOutline,
 } from 'ionicons/icons';
 import { Document } from '../models/document.model';
 import { Car } from '../models/car.model';
 import { DatabaseService } from '../services/firebase-database.service';
+import { AuthService } from '../services/auth.service';
 import { DocumentModalComponent } from './document-modal.component';
 
 @Component({
@@ -87,20 +90,22 @@ export class DocumentsPage implements OnInit, OnDestroy {
     private toastController: ToastController,
     private alertController: AlertController,
     private modalController: ModalController,
+    private authService: AuthService,
     private route: ActivatedRoute,
     private router: Router,
   ) {
     addIcons({
-      add,
-      create,
-      trash,
-      car,
-      calendar,
       documentText,
+      add,
+      logOutOutline,
       checkmarkCircle,
-      warningOutline,
+      car,
       closeCircle,
       folderOpen,
+      create,
+      trash,
+      calendar,
+      warningOutline,
       close,
       shieldCheckmark,
     });
@@ -378,6 +383,8 @@ export class DocumentsPage implements OnInit, OnDestroy {
     if (type.includes('visite') || type.includes('technique'))
       return 'checkmark-circle';
     if (type.includes('carte') || type.includes('grise')) return 'car';
+    if (type.includes('permis')) return 'card';
+    if (type.includes('vignette')) return 'pricetag';
     return 'document-text';
   }
 
@@ -415,5 +422,11 @@ export class DocumentsPage implements OnInit, OnDestroy {
     const day = String(dateObj.getDate()).padStart(2, '0');
 
     return `${year}-${month}-${day}`;
+  }
+
+  async logout() {
+    await this.authService.signOut();
+    this.router.navigate(['/auth']);
+    App.exitApp();
   }
 }

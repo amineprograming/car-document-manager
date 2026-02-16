@@ -404,6 +404,7 @@ export class DatabaseService {
         await updateDoc(settingsDoc, {
           notificationDays: settings.notificationDays,
           notificationHours: settings.notificationHours,
+          notificationIntervals: settings.notificationIntervals,
           enableNotifications: settings.enableNotifications,
           updatedAt: Timestamp.now(),
         });

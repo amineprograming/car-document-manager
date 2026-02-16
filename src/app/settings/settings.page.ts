@@ -1,11 +1,13 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import {
   IonContent,
   IonHeader,
   IonTitle,
   IonToolbar,
+  IonButtons,
   IonCard,
   IonCardHeader,
   IonCardTitle,
@@ -20,21 +22,39 @@ import {
   IonButton,
   IonIcon,
   IonChip,
+  IonSpinner,
+  IonToggle,
   ToastController,
   AlertController,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import {
   notificationsOutline,
+  notifications,
   settingsOutline,
   closeCircle,
   add,
   refreshOutline,
+  refresh,
   saveOutline,
+  calendar,
+  time,
+  timeOutline,
+  addCircle,
+  repeatOutline,
+  cogOutline,
+  chevronForward,
+  informationCircleOutline,
+  checkmarkCircle,
+  logOutOutline,
+  exitOutline,
 } from 'ionicons/icons';
 import { ConfigService, AppConfig } from '../services/config.service';
 import { PushNotificationService } from '../services/push-notification.service';
 import { DatabaseService } from '../services/firebase-database.service';
+import { AuthService } from '../services/auth.service';
+import { App } from '@capacitor/app';
+import { Capacitor } from '@capacitor/core';
 
 @Component({
   selector: 'app-settings',
@@ -46,6 +66,7 @@ import { DatabaseService } from '../services/firebase-database.service';
     IonHeader,
     IonTitle,
     IonToolbar,
+    IonButtons,
     IonCard,
     IonCardHeader,
     IonCardTitle,
@@ -60,6 +81,8 @@ import { DatabaseService } from '../services/firebase-database.service';
     IonButton,
     IonIcon,
     IonChip,
+    IonSpinner,
+    IonToggle,
     CommonModule,
     FormsModule,
   ],
@@ -72,6 +95,7 @@ export class SettingsPage implements OnInit {
     enableNotifications: true,
   };
 
+  isLoading: boolean = true;
   showHourSelector: boolean = false;
   selectedHour: number | null = null;
   availableHours: number[] = [];
@@ -84,15 +108,30 @@ export class SettingsPage implements OnInit {
     private toastController: ToastController,
     private alertController: AlertController,
     private pushNotificationService: PushNotificationService,
-    private databaseService: DatabaseService
+    private databaseService: DatabaseService,
+    private authService: AuthService,
+    private router: Router,
   ) {
     addIcons({
-      notificationsOutline,
       settingsOutline,
+      notifications,
+      calendar,
+      time,
+      notificationsOutline,
+      timeOutline,
       closeCircle,
+      addCircle,
+      repeatOutline,
+      cogOutline,
+      chevronForward,
+      refresh,
+      informationCircleOutline,
+      checkmarkCircle,
       add,
       refreshOutline,
       saveOutline,
+      logOutOutline,
+      exitOutline,
     });
 
     // Inject DatabaseService to ConfigService to avoid circular dependency
@@ -108,12 +147,15 @@ export class SettingsPage implements OnInit {
    * Charge la configuration depuis le service
    */
   async loadConfiguration() {
+    this.isLoading = true;
     try {
-      this.config = this.configService.getConfig();
+      this.config = await this.configService.getConfigAsync();
       this.generateAvailableHours();
     } catch (error) {
       console.error('Error loading configuration:', error);
       this.showToast('Erreur lors du chargement des paramètres', 'danger');
+    } finally {
+      this.isLoading = false;
     }
   }
 
@@ -135,13 +177,13 @@ export class SettingsPage implements OnInit {
   async onNotificationToggle() {
     try {
       await this.configService.toggleNotifications(
-        this.config.enableNotifications
+        this.config.enableNotifications,
       );
       await this.pushNotificationService.updateNotifications();
       this.showToast(
         this.config.enableNotifications
           ? 'Notifications activées'
-          : 'Notifications désactivées'
+          : 'Notifications désactivées',
       );
     } catch (error) {
       console.error('Error toggling notifications:', error);
@@ -161,7 +203,7 @@ export class SettingsPage implements OnInit {
 
     try {
       const updated = await this.configService.updateNotificationDays(
-        this.config.notificationDays
+        this.config.notificationDays,
       );
       if (updated) {
         await this.pushNotificationService.updateNotifications();
@@ -196,7 +238,7 @@ export class SettingsPage implements OnInit {
 
       try {
         const updated = await this.configService.updateNotificationHours(
-          this.config.notificationHours
+          this.config.notificationHours,
         );
         if (updated) {
           this.generateAvailableHours();
@@ -223,7 +265,7 @@ export class SettingsPage implements OnInit {
 
       try {
         const updated = await this.configService.updateNotificationHours(
-          this.config.notificationHours
+          this.config.notificationHours,
         );
         if (updated) {
           this.generateAvailableHours();
@@ -239,7 +281,7 @@ export class SettingsPage implements OnInit {
     } else {
       this.showToast(
         'Au moins une heure de notification est requise',
-        'warning'
+        'warning',
       );
     }
   }
@@ -340,7 +382,7 @@ export class SettingsPage implements OnInit {
     } else {
       this.showToast(
         'Au moins un intervalle de notification est requis',
-        'warning'
+        'warning',
       );
     }
   }
@@ -415,18 +457,86 @@ export class SettingsPage implements OnInit {
   }
 
   /**
+   * Check if current hour matches configured hours and show notifications
+   */
+  async checkCurrentHourNotifications() {
+    try {
+      const currentHour = new Date().getHours();
+      const isConfigured = this.config.notificationHours.includes(currentHour);
+
+      if (isConfigured) {
+        await this.pushNotificationService.forceCheckNotifications();
+        this.showToast(
+          `Heure actuelle (${currentHour}:00) configurée - Notifications vérifiées!`,
+        );
+      } else {
+        const configuredHours = this.config.notificationHours
+          .map((h) => `${h}:00`)
+          .join(', ');
+        this.showToast(
+          `Heure actuelle (${currentHour}:00) non configurée. Heures: ${configuredHours}`,
+          'warning',
+          4000,
+        );
+      }
+    } catch (error) {
+      console.error('Error checking current hour notifications:', error);
+      this.showToast('Erreur lors de la vérification', 'danger');
+    }
+  }
+
+  /**
    * Affiche un toast
    */
   private async showToast(
     message: string,
-    color: 'success' | 'danger' | 'warning' = 'success'
+    color: 'success' | 'danger' | 'warning' = 'success',
+    duration: number = 2000,
   ) {
     const toast = await this.toastController.create({
       message,
-      duration: 2000,
+      duration,
       position: 'bottom',
       color,
     });
     await toast.present();
+  }
+
+  /**
+   * Déconnexion et fermeture de l'application
+   */
+  async logout() {
+    const alert = await this.alertController.create({
+      header: 'Déconnexion',
+      message: "Voulez-vous vous déconnecter et quitter l'application ?",
+      buttons: [
+        {
+          text: 'Annuler',
+          role: 'cancel',
+        },
+        {
+          text: 'Déconnexion',
+          role: 'destructive',
+          handler: async () => {
+            try {
+              await this.authService.signOut();
+              this.router.navigate(['/auth']);
+
+              // Close app on native platforms
+              if (Capacitor.isNativePlatform()) {
+                setTimeout(() => {
+                  App.exitApp();
+                }, 500);
+              }
+            } catch (error) {
+              console.error('Error during logout:', error);
+              this.showToast('Erreur lors de la déconnexion', 'danger');
+            }
+          },
+        },
+      ],
+    });
+
+    await alert.present();
   }
 }

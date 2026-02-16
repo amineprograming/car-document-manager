@@ -57,12 +57,14 @@ import { Car } from '../models/car.model';
             #typeDocumentField="ngModel"
           >
             <ion-select-option value="Assurance">Assurance</ion-select-option>
+            <ion-select-option value="Vignette">Vignette</ion-select-option>
             <ion-select-option value="Visite Technique"
               >Visite Technique</ion-select-option
             >
             <ion-select-option value="Carte Grise"
               >Carte Grise</ion-select-option
             >
+            <ion-select-option value="Permis">Permis</ion-select-option>
           </ion-select>
         </ion-item>
 

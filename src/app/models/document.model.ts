@@ -14,4 +14,6 @@ export enum DocumentType {
   ASSURANCE = 'Assurance',
   VIGNETTE = 'Vignette',
   CARTE_GRISE = 'Carte Grise',
+  VISITE_TECHNIQUE = 'Visite Technique',
+  PERMIS = 'Permis',
 }

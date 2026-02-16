@@ -175,9 +175,12 @@ export class Tab1Page implements OnInit, OnDestroy {
       case 'carte grise':
         return 'document';
       case 'contrôle technique':
+      case 'visite technique':
         return 'checkmarkCircle';
       case 'vignette':
         return 'medkit';
+      case 'permis':
+        return 'card';
       default:
         return 'documentText';
     }

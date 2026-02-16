@@ -1,109 +1,426 @@
+// Elegant Tableau-inspired Login Page
+$primary-color: #1a5f7a;
+$primary-dark: #0d3d4d;
+$primary-light: #57c5b6;
+$accent-color: #159895;
+$text-dark: #2c3e50;
+$text-muted: #7f8c8d;
+$bg-light: #f8fafc;
+$white: #ffffff;
+
 .auth-content {
-  --background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --background: #{$bg-light};
 }
 
-.auth-container {
+.auth-wrapper {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+}
+
+// Left Brand Panel
+.brand-panel {
+  flex: 1;
+  background: linear-gradient(145deg, $primary-color 0%, $primary-dark 100%);
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  padding: 2rem;
-  text-align: center;
-}
+  justify-content: space-between;
+  padding: 3rem;
+  position: relative;
+  overflow: hidden;
 
-.logo-section {
-  margin-bottom: 3rem;
-  color: white;
-
-  .logo-icon {
-    font-size: 4rem;
-    margin-bottom: 1rem;
-    color: #ffd700;
+  &::before {
+    content: "";
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(
+      circle,
+      rgba(255, 255, 255, 0.1) 0%,
+      transparent 70%
+    );
+    pointer-events: none;
   }
 
-  h1 {
-    font-size: 2rem;
-    font-weight: bold;
-    margin-bottom: 0.5rem;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+  &::after {
+    content: "";
+    position: absolute;
+    bottom: -30%;
+    left: -30%;
+    width: 80%;
+    height: 80%;
+    background: radial-gradient(
+      circle,
+      rgba($primary-light, 0.2) 0%,
+      transparent 70%
+    );
+    pointer-events: none;
+  }
+}
+
+.brand-content {
+  position: relative;
+  z-index: 1;
+}
+
+.logo-container {
+  margin-bottom: 2rem;
+}
+
+.logo-circle {
+  width: 80px;
+  height: 80px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+
+  ion-icon {
+    font-size: 2.5rem;
+    color: $white;
+  }
+}
+
+.brand-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: $white;
+  margin: 0 0 0.5rem 0;
+  letter-spacing: -0.5px;
+}
+
+.brand-tagline {
+  font-size: 1.1rem;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0 0 3rem 0;
+  font-weight: 400;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.feature-card {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 1.25rem;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  transition: all 0.3s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.15);
+    transform: translateY(-2px);
+  }
+}
+
+.feature-icon {
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  ion-icon {
+    font-size: 1.25rem;
+    color: $white;
+  }
+}
+
+.feature-text {
+  h3 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: $white;
+    margin: 0 0 0.25rem 0;
   }
 
   p {
-    font-size: 1.1rem;
-    opacity: 0.9;
-    margin-bottom: 0;
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.7);
+    margin: 0;
   }
 }
 
-.auth-form {
+.brand-footer {
+  position: relative;
+  z-index: 1;
+
+  p {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.85rem;
+    margin: 0;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+}
+
+// Right Login Panel
+.login-panel {
+  flex: 1;
+  background: $white;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 3rem;
+}
+
+.login-content {
+  max-width: 400px;
   width: 100%;
-  max-width: 320px;
+  margin: auto;
+}
 
-  ion-button {
-    margin-bottom: 2rem;
-    --border-radius: 25px;
-    --box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-    height: 50px;
-    font-weight: 600;
+.welcome-section {
+  margin-bottom: 2.5rem;
+
+  h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: $text-dark;
+    margin: 0 0 0.5rem 0;
+  }
+
+  p {
+    font-size: 1rem;
+    color: $text-muted;
+    margin: 0;
   }
 }
 
-.features-list {
-  display: grid;
-  gap: 1rem;
-  margin-top: 1rem;
+.login-form {
+  margin-bottom: 2rem;
 }
 
-.debug-card {
-  margin-top: 1rem;
-  --background: rgba(255, 255, 255, 0.9);
-
-  .error-text {
-    color: var(--ion-color-danger);
-    font-weight: bold;
-  }
-}
-
-.feature-item {
+.google-btn {
+  width: 100%;
   display: flex;
   align-items: center;
-  padding: 0.75rem;
-  background: rgba(255, 255, 255, 0.1);
+  justify-content: center;
+  gap: 12px;
+  padding: 16px 24px;
+  background: $white;
+  border: 2px solid #e1e5e9;
   border-radius: 12px;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: white;
-  font-size: 0.9rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: $text-dark;
+  cursor: pointer;
+  transition: all 0.3s ease;
 
-  ion-icon {
-    margin-right: 0.75rem;
-    font-size: 1.2rem;
+  &:hover:not(:disabled) {
+    border-color: $primary-color;
+    box-shadow: 0 4px 20px rgba($primary-color, 0.15);
+    transform: translateY(-2px);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(0);
+  }
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+
+  .google-icon {
+    width: 24px;
+    height: 24px;
+  }
+
+  ion-spinner {
+    width: 24px;
+    height: 24px;
+    color: $primary-color;
+  }
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  margin: 2rem 0;
+
+  &::before,
+  &::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: #e1e5e9;
   }
 
   span {
-    font-weight: 500;
+    padding: 0 1rem;
+    color: $text-muted;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
   }
 }
 
-@media (max-width: 768px) {
-  .auth-container {
+.info-text {
+  font-size: 0.85rem;
+  color: $text-muted;
+  text-align: center;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.debug-card {
+  margin-top: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+
+  ion-card-title {
+    font-size: 1rem;
+    color: $text-dark;
+  }
+
+  p {
+    margin: 0.5rem 0;
+    font-size: 0.9rem;
+    color: $text-muted;
+  }
+
+  .error-text {
+    color: #e74c3c;
+  }
+}
+
+.debug-btn {
+  width: 100%;
+  padding: 10px;
+  margin-top: 1rem;
+  background: transparent;
+  border: none;
+  color: $text-muted;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: color 0.3s ease;
+
+  &:hover {
+    color: $primary-color;
+  }
+}
+
+.login-footer {
+  text-align: center;
+
+  p {
+    font-size: 0.8rem;
+    color: $text-muted;
+    margin: 0;
+  }
+}
+
+// Responsive Design
+@media (max-width: 900px) {
+  .auth-wrapper {
+    flex-direction: column;
+  }
+
+  .brand-panel {
+    padding: 2rem;
+    min-height: auto;
+  }
+
+  .brand-title {
+    font-size: 2rem;
+  }
+
+  .brand-tagline {
+    margin-bottom: 2rem;
+  }
+
+  .features-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
+  .feature-card {
     padding: 1rem;
   }
 
-  .logo-section {
+  .brand-footer {
+    display: none;
+  }
+
+  .login-panel {
+    padding: 2rem;
+  }
+
+  .login-content {
+    margin: 0 auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .brand-panel {
+    padding: 1.5rem;
+  }
+
+  .logo-circle {
+    width: 60px;
+    height: 60px;
+
+    ion-icon {
+      font-size: 2rem;
+    }
+  }
+
+  .brand-title {
+    font-size: 1.75rem;
+  }
+
+  .brand-tagline {
+    font-size: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .features-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+  }
+
+  .feature-card {
+    padding: 0.75rem;
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .feature-icon {
+    width: 36px;
+    height: 36px;
+    margin: 0 auto;
+  }
+
+  .login-panel {
+    padding: 1.5rem;
+  }
+
+  .welcome-section {
+    text-align: center;
     margin-bottom: 2rem;
 
-    .logo-icon {
-      font-size: 3rem;
+    h2 {
+      font-size: 1.5rem;
     }
+  }
 
-    h1 {
-      font-size: 1.6rem;
-    }
-
-    p {
-      font-size: 1rem;
-    }
+  .google-btn {
+    padding: 14px 20px;
+    font-size: 0.95rem;
   }
 }

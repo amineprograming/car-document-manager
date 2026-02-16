@@ -22,13 +22,24 @@ export class ConfigService {
 
   private databaseService?: any; // Will be injected later to avoid circular dependency
   private currentConfig: AppConfig | null = null;
+  private configLoaded: boolean = false;
+  private loadingPromise: Promise<void> | null = null;
 
   constructor() {}
 
   // Method to inject DatabaseService after creation to avoid circular dependency
   setDatabaseService(databaseService: any) {
     this.databaseService = databaseService;
-    this.loadFromFirebase();
+    this.loadingPromise = this.loadFromFirebase();
+  }
+
+  /**
+   * Wait for configuration to be loaded from Firebase
+   */
+  async waitForConfigLoad(): Promise<void> {
+    if (this.loadingPromise) {
+      await this.loadingPromise;
+    }
   }
 
   /**
@@ -38,10 +49,15 @@ export class ConfigService {
     if (this.databaseService && this.databaseService.getUserSettings) {
       try {
         this.currentConfig = await this.databaseService.getUserSettings();
+        this.configLoaded = true;
       } catch (error) {
         console.error('Error loading settings from Firebase:', error);
         this.currentConfig = this.getLocalConfig();
+        this.configLoaded = true;
       }
+    } else {
+      this.currentConfig = this.getLocalConfig();
+      this.configLoaded = true;
     }
   }
 
@@ -63,9 +79,20 @@ export class ConfigService {
   }
 
   /**
-   * Récupère la configuration actuelle
+   * Récupère la configuration actuelle (sync - may return stale data if not loaded)
    */
   getConfig(): AppConfig {
+    if (this.currentConfig) {
+      return { ...this.currentConfig };
+    }
+    return this.getLocalConfig();
+  }
+
+  /**
+   * Récupère la configuration actuelle (async - waits for Firebase load)
+   */
+  async getConfigAsync(): Promise<AppConfig> {
+    await this.waitForConfigLoad();
     if (this.currentConfig) {
       return { ...this.currentConfig };
     }
@@ -79,9 +106,8 @@ export class ConfigService {
     try {
       // Save to Firebase first
       if (this.databaseService && this.databaseService.saveUserSettings) {
-        const firebaseSaved = await this.databaseService.saveUserSettings(
-          config
-        );
+        const firebaseSaved =
+          await this.databaseService.saveUserSettings(config);
         if (firebaseSaved) {
           this.currentConfig = { ...config };
         }
