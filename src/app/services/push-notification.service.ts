@@ -55,6 +55,9 @@ export class PushNotificationService {
 
         // Start the notification scheduling process
         await this.scheduleAllNotifications();
+
+        // Also check and show immediate notifications for documents that need attention NOW
+        await this.checkAndShowImmediateNativeNotifications();
       } catch (error) {
         console.error('Error initializing notifications:', error);
       }
@@ -130,6 +133,8 @@ export class PushNotificationService {
 
   /**
    * Schedule notifications for a specific document
+   * Schedules notifications for ALL days within the notification window at configured hours
+   * This ensures notifications fire even when app is closed
    */
   private async scheduleDocumentNotifications(
     document: Document,
@@ -142,32 +147,33 @@ export class PushNotificationService {
 
     const now = new Date();
     const diffTime = expirationDate.getTime() - now.getTime();
-    const totalDaysUntilExpiration = Math.ceil(
-      diffTime / (1000 * 60 * 60 * 24),
+    const daysUntilExpiration = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    // Schedule notifications for each day from now until expiration (within notificationDays window)
+    const daysToSchedule = Math.min(
+      daysUntilExpiration,
+      config.notificationDays,
     );
 
-    // Use notification intervals from config instead of hardcoded values
-    const notificationIntervals = config.notificationIntervals || [7, 3, 1, 0];
+    for (let dayOffset = 0; dayOffset < daysToSchedule; dayOffset++) {
+      const notificationDay = new Date(now);
+      notificationDay.setDate(notificationDay.getDate() + dayOffset);
 
-    // Schedule notifications for each interval and each configured hour
-    for (const interval of notificationIntervals) {
-      if (totalDaysUntilExpiration >= interval) {
-        // Calculate the date when notification should be sent
-        const notificationDate = new Date(expirationDate);
-        notificationDate.setDate(notificationDate.getDate() - interval);
+      const remainingDays = daysUntilExpiration - dayOffset;
 
-        // Only schedule if notification date is in the future
-        if (notificationDate.getTime() > now.getTime()) {
-          const daysUntilExpiration =
-            interval === 0 ? totalDaysUntilExpiration : interval;
-          for (const hour of config.notificationHours) {
-            await this.scheduleNotificationForDateTime(
-              document,
-              notificationDate,
-              hour,
-              daysUntilExpiration,
-            );
-          }
+      // Schedule for each configured hour on this day
+      for (const hour of config.notificationHours) {
+        const scheduledDate = new Date(notificationDay);
+        scheduledDate.setHours(hour, 0, 0, 0);
+
+        // Only schedule if the time is in the future
+        if (scheduledDate.getTime() > now.getTime()) {
+          await this.scheduleNotificationForDateTime(
+            document,
+            scheduledDate,
+            hour,
+            remainingDays,
+          );
         }
       }
     }
@@ -205,8 +211,11 @@ export class PushNotificationService {
             ),
             schedule: {
               at: scheduledDate,
+              allowWhileIdle: true, // Important: ensures notification fires even in Doze mode
             },
             sound: 'default',
+            smallIcon: 'ic_stat_icon_config_sample',
+            largeIcon: 'ic_launcher',
             attachments: [],
             actionTypeId: 'DOCUMENT_EXPIRY',
             extra: {
@@ -406,6 +415,7 @@ export class PushNotificationService {
 
   /**
    * Check if current time matches notification hours and show web notifications
+   * Simplified: shows notification for ALL documents within notificationDays window
    */
   private async checkAndShowWebNotifications(): Promise<void> {
     try {
@@ -427,14 +437,14 @@ export class PushNotificationService {
         return;
       }
 
-      // Get documents that need notification
+      // Get documents that need notification (within notificationDays window)
       const documents = await this.databaseService.getDocuments();
       const activeDocuments = documents.filter(
         (doc) =>
           doc.documentActive && this.shouldScheduleNotification(doc, config),
       );
 
-      // Show web notification for each document
+      // Show web notification for each document within the notification window
       for (const document of activeDocuments) {
         const expirationDate =
           typeof document.dateFin === 'string'
@@ -444,17 +454,10 @@ export class PushNotificationService {
         const diffTime = expirationDate.getTime() - now.getTime();
         const daysUntilExpiration = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-        // Check if this matches one of our notification intervals
-        const intervals = config.notificationIntervals || [7, 3, 1, 0];
-        if (
-          intervals.includes(daysUntilExpiration) ||
-          daysUntilExpiration <= intervals[intervals.length - 1]
-        ) {
-          this.showWebNotification(
-            '⚠️ Document bientôt expiré',
-            this.generateNotificationMessage(document, daysUntilExpiration),
-          );
-        }
+        this.showWebNotification(
+          '⚠️ Document bientôt expiré',
+          this.generateNotificationMessage(document, daysUntilExpiration),
+        );
       }
     } catch (error) {
       console.error('Error checking web notifications:', error);
@@ -528,42 +531,49 @@ export class PushNotificationService {
   }
 
   /**
-   * Check if current hour is in configured notification hours (for debugging)
+   * Check and show immediate notifications on native platforms
+   * This is called when the app starts to notify users of documents that need attention
    */
-  async isCurrentHourConfigured(): Promise<boolean> {
-    const config = await this.configService.getConfigAsync();
-    const currentHour = new Date().getHours();
-    return config.notificationHours.includes(currentHour);
-  }
-
-  /**
-   * Force check and show notifications now (for testing)
-   */
-  async forceCheckNotifications(): Promise<void> {
-    if (!Capacitor.isNativePlatform()) {
+  private async checkAndShowImmediateNativeNotifications(): Promise<void> {
+    try {
       const config = await this.configService.getConfigAsync();
-      const currentHour = new Date().getHours();
 
-      console.log(`Current hour: ${currentHour}:00`);
-      console.log(
-        `Configured hours: ${config.notificationHours.map((h) => h + ':00').join(', ')}`,
-      );
-      console.log(`Match: ${config.notificationHours.includes(currentHour)}`);
+      if (!config.enableNotifications) {
+        console.log('Notifications are disabled');
+        return;
+      }
 
-      // Force show notifications regardless of current minute
+      // Get all documents
       const documents = await this.databaseService.getDocuments();
-      const activeDocuments = documents.filter(
+
+      // Filter documents that need notification (within notificationDays window)
+      const documentsNeedingNotification = documents.filter(
         (doc) =>
           doc.documentActive && this.shouldScheduleNotification(doc, config),
       );
 
-      console.log(`Documents needing notification: ${activeDocuments.length}`);
+      console.log(
+        `Documents needing immediate notification: ${documentsNeedingNotification.length}`,
+      );
 
-      if (
-        activeDocuments.length > 0 &&
-        config.notificationHours.includes(currentHour)
-      ) {
-        for (const document of activeDocuments) {
+      if (documentsNeedingNotification.length === 0) {
+        return;
+      }
+
+      // Check if we already showed a notification today (to avoid spamming)
+      const today = new Date().toDateString();
+      const lastNotificationDate = localStorage.getItem(
+        'last_native_notification_date',
+      );
+
+      if (lastNotificationDate === today) {
+        console.log('Already showed notifications today');
+        return;
+      }
+
+      // Schedule immediate notifications (5 seconds from now)
+      const notifications = documentsNeedingNotification.map(
+        (document, index) => {
           const expirationDate =
             typeof document.dateFin === 'string'
               ? new Date(document.dateFin)
@@ -574,11 +584,111 @@ export class PushNotificationService {
             diffTime / (1000 * 60 * 60 * 24),
           );
 
-          this.showWebNotification(
-            '⚠️ Document bientôt expiré',
-            this.generateNotificationMessage(document, daysUntilExpiration),
-          );
-        }
+          return {
+            id: 800000 + index, // Use a separate ID range for immediate notifications
+            title: '⚠️ Document bientôt expiré',
+            body: this.generateNotificationMessage(
+              document,
+              daysUntilExpiration,
+            ),
+            schedule: {
+              at: new Date(Date.now() + 5000 + index * 1000), // Stagger by 1 second each
+            },
+            sound: 'default',
+          };
+        },
+      );
+
+      if (notifications.length > 0) {
+        await LocalNotifications.schedule({ notifications });
+        localStorage.setItem('last_native_notification_date', today);
+        console.log(
+          `Scheduled ${notifications.length} immediate notifications`,
+        );
+      }
+    } catch (error) {
+      console.error('Error checking immediate native notifications:', error);
+    }
+  }
+
+  /**
+   * Check if current hour is in configured notification hours (for debugging)
+   */
+  async isCurrentHourConfigured(): Promise<boolean> {
+    const config = await this.configService.getConfigAsync();
+    const currentHour = new Date().getHours();
+    return config.notificationHours.includes(currentHour);
+  }
+
+  /**
+   * Force check and show notifications now (for testing)
+   * Works on both web and native platforms
+   */
+  async forceCheckNotifications(): Promise<void> {
+    const config = await this.configService.getConfigAsync();
+    const currentHour = new Date().getHours();
+
+    console.log(`Current hour: ${currentHour}:00`);
+    console.log(
+      `Configured hours: ${config.notificationHours.map((h) => h + ':00').join(', ')}`,
+    );
+    console.log(`Notification days: ${config.notificationDays}`);
+
+    // Get documents that need notification
+    const documents = await this.databaseService.getDocuments();
+    const activeDocuments = documents.filter(
+      (doc) =>
+        doc.documentActive && this.shouldScheduleNotification(doc, config),
+    );
+
+    console.log(`Documents needing notification: ${activeDocuments.length}`);
+
+    if (activeDocuments.length === 0) {
+      console.log('No documents need notification');
+      return;
+    }
+
+    if (Capacitor.isNativePlatform()) {
+      // Native platform - schedule immediate notifications
+      const notifications = activeDocuments.map((document, index) => {
+        const expirationDate =
+          typeof document.dateFin === 'string'
+            ? new Date(document.dateFin)
+            : document.dateFin;
+
+        const diffTime = expirationDate.getTime() - new Date().getTime();
+        const daysUntilExpiration = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        return {
+          id: 900000 + index, // Use a separate ID range for force check notifications
+          title: '⚠️ Document bientôt expiré',
+          body: this.generateNotificationMessage(document, daysUntilExpiration),
+          schedule: {
+            at: new Date(Date.now() + 3000 + index * 500), // Stagger by 0.5 second each
+          },
+          sound: 'default',
+        };
+      });
+
+      await LocalNotifications.schedule({ notifications });
+      console.log(
+        `Force scheduled ${notifications.length} native notifications`,
+      );
+    } else {
+      // Web platform - show web notifications
+      for (const document of activeDocuments) {
+        const expirationDate =
+          typeof document.dateFin === 'string'
+            ? new Date(document.dateFin)
+            : document.dateFin;
+
+        const diffTime = expirationDate.getTime() - new Date().getTime();
+        const daysUntilExpiration = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        this.showWebNotification(
+          '⚠️ Document bientôt expiré',
+          this.generateNotificationMessage(document, daysUntilExpiration),
+        );
       }
     }
   }

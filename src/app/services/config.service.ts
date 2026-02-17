@@ -3,7 +3,6 @@ import { Injectable } from '@angular/core';
 export interface AppConfig {
   notificationDays: number;
   notificationHours: number[];
-  notificationIntervals: number[]; // Days before expiration to send notifications
   enableNotifications: boolean;
 }
 
@@ -16,7 +15,6 @@ export class ConfigService {
   private defaultConfig: AppConfig = {
     notificationDays: 30, // Notifier 30 jours avant expiration par défaut
     notificationHours: [9, 18], // Notifications à 9h et 18h par défaut
-    notificationIntervals: [7, 3, 1, 0], // Notifications 7, 3, 1 jour avant et le jour d'expiration
     enableNotifications: true,
   };
 

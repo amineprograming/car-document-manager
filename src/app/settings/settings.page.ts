@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import * as XLSX from 'xlsx';
 import {
   IonContent,
   IonHeader,
@@ -48,6 +49,8 @@ import {
   checkmarkCircle,
   logOutOutline,
   exitOutline,
+  downloadOutline,
+  cloudDownloadOutline,
 } from 'ionicons/icons';
 import { ConfigService, AppConfig } from '../services/config.service';
 import { PushNotificationService } from '../services/push-notification.service';
@@ -91,7 +94,6 @@ export class SettingsPage implements OnInit {
   config: AppConfig = {
     notificationDays: 30,
     notificationHours: [9, 18],
-    notificationIntervals: [7, 3, 1, 0],
     enableNotifications: true,
   };
 
@@ -99,9 +101,6 @@ export class SettingsPage implements OnInit {
   showHourSelector: boolean = false;
   selectedHour: number | null = null;
   availableHours: number[] = [];
-
-  showIntervalSelector: boolean = false;
-  selectedInterval: number | null = null;
 
   constructor(
     private configService: ConfigService,
@@ -132,6 +131,8 @@ export class SettingsPage implements OnInit {
       saveOutline,
       logOutOutline,
       exitOutline,
+      downloadOutline,
+      cloudDownloadOutline,
     });
 
     // Inject DatabaseService to ConfigService to avoid circular dependency
@@ -306,88 +307,6 @@ export class SettingsPage implements OnInit {
   }
 
   /**
-   * Retourne le texte des intervalles de notification
-   */
-  getNotificationIntervalsText(): string {
-    if (this.config.notificationIntervals.length === 0) {
-      return 'Aucun';
-    }
-    return this.config.notificationIntervals
-      .sort((a, b) => b - a)
-      .map((interval) => (interval === 0 ? 'Jour J' : interval + 'j avant'))
-      .join(', ');
-  }
-
-  /**
-   * Affiche le sélecteur d'intervalle
-   */
-  showIntervalPicker() {
-    this.showIntervalSelector = true;
-    this.selectedInterval = null;
-  }
-
-  /**
-   * Ajoute un intervalle de notification
-   */
-  async addNotificationInterval() {
-    if (
-      this.selectedInterval !== null &&
-      this.selectedInterval >= 0 &&
-      !this.config.notificationIntervals.includes(this.selectedInterval)
-    ) {
-      this.config.notificationIntervals.push(this.selectedInterval);
-      this.config.notificationIntervals.sort((a, b) => b - a); // Tri décroissant
-
-      try {
-        const updated = await this.configService.saveConfig(this.config);
-        if (updated) {
-          this.showIntervalSelector = false;
-          this.selectedInterval = null;
-          await this.pushNotificationService.updateNotifications();
-          this.showToast('Intervalle de notification ajouté');
-        } else {
-          this.showToast("Erreur lors de l'ajout de l'intervalle", 'danger');
-        }
-      } catch (error) {
-        console.error('Error adding notification interval:', error);
-        this.showToast("Erreur lors de l'ajout de l'intervalle", 'danger');
-      }
-    } else if (
-      this.selectedInterval !== null &&
-      this.config.notificationIntervals.includes(this.selectedInterval)
-    ) {
-      this.showToast('Cet intervalle existe déjà', 'warning');
-    }
-  }
-
-  /**
-   * Supprime un intervalle de notification
-   */
-  async removeNotificationInterval(index: number) {
-    if (this.config.notificationIntervals.length > 1) {
-      this.config.notificationIntervals.splice(index, 1);
-
-      try {
-        const updated = await this.configService.saveConfig(this.config);
-        if (updated) {
-          await this.pushNotificationService.updateNotifications();
-          this.showToast('Intervalle de notification supprimé');
-        } else {
-          this.showToast('Erreur lors de la suppression', 'danger');
-        }
-      } catch (error) {
-        console.error('Error removing notification interval:', error);
-        this.showToast('Erreur lors de la suppression', 'danger');
-      }
-    } else {
-      this.showToast(
-        'Au moins un intervalle de notification est requis',
-        'warning',
-      );
-    }
-  }
-
-  /**
    * Remet la configuration aux valeurs par défaut
    */
   async resetToDefaults() {
@@ -538,5 +457,92 @@ export class SettingsPage implements OnInit {
     });
 
     await alert.present();
+  }
+
+  /**
+   * Export all data (vehicles and documents) to Excel file
+   */
+  async exportToExcel() {
+    try {
+      this.showToast("Préparation de l'export...", 'warning');
+
+      // Get all data
+      const cars = await this.databaseService.getCars();
+      const documents = await this.databaseService.getDocuments();
+
+      // Prepare vehicles data
+      const vehiclesData = cars.map((car) => ({
+        Matricule: car.matricule,
+        Marque: car.marque || '',
+        Modèle: car.model || '',
+        Type: car.typeVehicule || 'voiture',
+        Chauffeur: car.chauffeur || '',
+        Téléphone: car.tel || '',
+        'Date de création': car.createdAt
+          ? new Date(car.createdAt).toLocaleDateString('fr-FR')
+          : '',
+      }));
+
+      // Prepare documents data
+      const documentsData = documents.map((doc) => ({
+        Référence: doc.reference || '',
+        Type: doc.typeDocument,
+        'Matricule Véhicule': doc.matriculeCar,
+        'Date Début': doc.dateDebut
+          ? new Date(doc.dateDebut).toLocaleDateString('fr-FR')
+          : '',
+        'Date Fin': doc.dateFin
+          ? new Date(doc.dateFin).toLocaleDateString('fr-FR')
+          : '',
+        Actif: doc.documentActive ? 'Oui' : 'Non',
+        Statut: this.getDocumentStatus(doc.dateFin),
+        'Date de création': doc.createdAt
+          ? new Date(doc.createdAt).toLocaleDateString('fr-FR')
+          : '',
+      }));
+
+      // Create workbook
+      const workbook = XLSX.utils.book_new();
+
+      // Add vehicles sheet
+      const vehiclesSheet = XLSX.utils.json_to_sheet(vehiclesData);
+      XLSX.utils.book_append_sheet(workbook, vehiclesSheet, 'Véhicules');
+
+      // Add documents sheet
+      const documentsSheet = XLSX.utils.json_to_sheet(documentsData);
+      XLSX.utils.book_append_sheet(workbook, documentsSheet, 'Documents');
+
+      // Generate filename with date
+      const date = new Date();
+      const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+      const filename = `backup_vehicules_${dateStr}.xlsx`;
+
+      // Export the file
+      XLSX.writeFile(workbook, filename);
+
+      this.showToast(`Export réussi: ${filename}`, 'success');
+    } catch (error) {
+      console.error('Error exporting to Excel:', error);
+      this.showToast("Erreur lors de l'export", 'danger');
+    }
+  }
+
+  /**
+   * Get document status based on expiration date
+   */
+  private getDocumentStatus(dateFin: Date | string): string {
+    const expirationDate =
+      typeof dateFin === 'string' ? new Date(dateFin) : dateFin;
+    const now = new Date();
+    const diffTime = expirationDate.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) {
+      return 'Expiré';
+    } else if (diffDays <= 7) {
+      return 'Expire bientôt';
+    } else {
+      return 'Valide';
+    }
   }
 }

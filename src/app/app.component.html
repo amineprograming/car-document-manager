@@ -1,3 +1,20 @@
 <ion-app>
+  <!-- Lock Screen Overlay -->
+  @if (isLocked) {
+    <div class="lock-screen">
+      <div class="lock-content">
+        <div class="lock-icon">
+          <ion-icon name="finger-print-outline"></ion-icon>
+        </div>
+        <h1>Gestionnaire de Véhicules</h1>
+        <p>Authentification requise</p>
+        <button class="unlock-button" (click)="authenticate()">
+          <ion-icon name="finger-print-outline"></ion-icon>
+          <span>Déverrouiller</span>
+        </button>
+      </div>
+    </div>
+  }
+
   <ion-router-outlet></ion-router-outlet>
 </ion-app>

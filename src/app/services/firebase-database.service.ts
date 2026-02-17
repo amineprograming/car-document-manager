@@ -187,7 +187,7 @@ export class DatabaseService {
       const q = query(documentsCollection, orderBy('dateFin', 'asc'));
       const querySnapshot = await getDocs(q);
 
-      return querySnapshot.docs.map((doc) => ({
+      const documents = querySnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
         dateDebut: doc.data()['dateDebut']?.toDate() || new Date(),
@@ -195,6 +195,11 @@ export class DatabaseService {
         createdAt: doc.data()['createdAt']?.toDate() || new Date(),
         updatedAt: doc.data()['updatedAt']?.toDate() || new Date(),
       })) as Document[];
+
+      // Auto-deactivate expired documents (expired for more than 1 day)
+      await this.deactivateExpiredDocuments(documents);
+
+      return documents;
     } catch (error: any) {
       console.error('Error getting documents:', error);
 
@@ -244,6 +249,34 @@ export class DatabaseService {
     } catch (error) {
       console.error('Error deleting document:', error);
       return false;
+    }
+  }
+
+  /**
+   * Automatically deactivate documents that have been expired for more than 1 day
+   */
+  private async deactivateExpiredDocuments(
+    documents: Document[],
+  ): Promise<void> {
+    const now = new Date();
+    const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000); // 1 day ago
+
+    for (const document of documents) {
+      // If document is active and dateFin is more than 1 day ago, deactivate it
+      if (document.documentActive && document.dateFin < oneDayAgo) {
+        try {
+          document.documentActive = false;
+          await this.updateDocument(document);
+          console.log(
+            `Document ${document.id} automatically deactivated (expired since ${document.dateFin})`,
+          );
+        } catch (error) {
+          console.error(
+            `Error deactivating expired document ${document.id}:`,
+            error,
+          );
+        }
+      }
     }
   }
 
@@ -361,7 +394,6 @@ export class DatabaseService {
         return {
           notificationDays: data['notificationDays'] || 30,
           notificationHours: data['notificationHours'] || [9, 18],
-          notificationIntervals: data['notificationIntervals'] || [7, 3, 1, 0],
           enableNotifications:
             data['enableNotifications'] !== undefined
               ? data['enableNotifications']
@@ -373,7 +405,6 @@ export class DatabaseService {
       const defaultSettings: AppConfig = {
         notificationDays: 30,
         notificationHours: [9, 18],
-        notificationIntervals: [7, 3, 1, 0],
         enableNotifications: true,
       };
       await addDoc(settingsCollection, defaultSettings);
@@ -384,7 +415,6 @@ export class DatabaseService {
       return {
         notificationDays: 30,
         notificationHours: [9, 18],
-        notificationIntervals: [7, 3, 1, 0],
         enableNotifications: true,
       };
     }
@@ -404,7 +434,6 @@ export class DatabaseService {
         await updateDoc(settingsDoc, {
           notificationDays: settings.notificationDays,
           notificationHours: settings.notificationHours,
-          notificationIntervals: settings.notificationIntervals,
           enableNotifications: settings.enableNotifications,
           updatedAt: Timestamp.now(),
         });
